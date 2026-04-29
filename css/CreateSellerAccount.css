@@ -194,6 +194,33 @@ textarea.custom-input { resize: vertical; min-height: 100px; }
     margin-left: 5px;
     position: relative;
     transition: 0.3s;
+    
+}
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-left: 15px;
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-back:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateX(-3px);
 }
 
 .login-link::after {

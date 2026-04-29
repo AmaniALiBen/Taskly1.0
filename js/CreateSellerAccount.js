@@ -1,13 +1,20 @@
+
+function goBackAndShowPopup() {
+    console.log("Redirecting to index..."); // للتأكد في المتصفح
+    localStorage.setItem('triggerPopup', 'true');
+    window.location.href = "../index.html";
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const sellerForm = document.getElementById('sellerForm');
-    
+
     // 1. معالجة معاينة الصورة الشخصية
     const fileInput = document.getElementById('profilePic');
     const imagePreview = document.getElementById('imagePreview');
     const plusIcon = document.getElementById('plus-icon');
 
     if (fileInput) {
-        fileInput.addEventListener('change', function() {
+        fileInput.addEventListener('change', function () {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -30,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedLangs = [];
 
     if (langSelect) {
-        langSelect.addEventListener('change', function() {
+        langSelect.addEventListener('change', function () {
             const val = this.value;
             if (val && !selectedLangs.includes(val)) {
                 selectedLangs.push(val);
@@ -54,16 +61,21 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('');
     }
-
+    function goBackAndShowPopup() {
+        // نضع علامة في مخزن المتصفح
+        localStorage.setItem('triggerPopup', 'true');
+        // نعود للصفحة السابقة
+        window.location.href = "../index.html";
+    }
     // 3. معالجة إرسال النموذج والتحقق الصارم
     if (sellerForm) {
-        sellerForm.addEventListener('submit', function(e) {
+        sellerForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
             // جلب قيم الحقول
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-            
+
             // جلب صناديق النصوص (Textareas)
             const experience = this.querySelector('textarea[placeholder*="Summarize"]').value.trim();
             const aboutMe = this.querySelector('textarea[placeholder*="Tell us"]').value.trim();
@@ -108,13 +120,13 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 showToast("Welcome to Taskly! Redirecting to your dashboard.", "success");
                 setTimeout(() => {
-                    window.location.href = 'seller-dashboard.html';
+                    window.location.href = 'sellerDashboard.html';
                 }, 2000);
             }, 1500);
         });
     }
 });
-
+function goBack(){ window.location.href = "../index.html";}
 /**
  * دالة التنبيهات الزجاجية (Toast)
  */
@@ -129,13 +141,13 @@ function showToast(msg, type) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation';
-    
+
     toast.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
     container.appendChild(toast);
-    
+
     setTimeout(() => toast.classList.add('show'), 100);
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 500);
     }, 4000);
-}
+}// 1. ضع هذه الدالة في البداية خارج كل الأقواس لكي يراها زر الـ HTML

@@ -46,40 +46,81 @@ function showToast(message, type = 'success') {
 }
 
 // ============================================
-// AUTHENTICATION FUNCTIONS
+// FETCH USER DATA FROM SERVER
 // ============================================
-function checkAuthStatus() {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-        isLoggedIn = true;
-        currentUser = JSON.parse(userData);
-        updateUIForLoggedInUser();
-    } else {
-        isLoggedIn = false;
+async function fetchUserData() {
+    try {
+        const response = await fetch('php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            isLoggedIn = true;
+            currentUser = {
+                name: data.username,
+                email: data.email,
+                role: data.role
+            };
+            updateUIForLoggedInUser();
+        } else {
+            isLoggedIn = false;
+            currentUser = null;
+            updateUIForLoggedOutUser();
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
         updateUIForLoggedOutUser();
     }
 }
 
+// ============================================
+// CHECK AUTH STATUS
+// ============================================
+function checkAuthStatus() {
+    fetchUserData();
+}
+
+// ============================================
+// UPDATE UI WHEN USER IS LOGGED IN
+// ============================================
 function updateUIForLoggedInUser() {
-    document.getElementById('auth-buttons')?.classList.add('hidden');
-    document.getElementById('user-menu')?.classList.remove('hidden');
-    if (currentUser) {
-        const userNameSpan = document.getElementById('user-name');
-        if (userNameSpan) {
-            userNameSpan.textContent = currentUser.name || currentUser.email.split('@')[0];
-        }
-        const userAvatarImg = document.getElementById('user-avatar-img');
-        if (userAvatarImg && currentUser.avatar) {
-            userAvatarImg.src = currentUser.avatar;
-        }
+    const authButtons = document.getElementById('auth-buttons');
+    const userMenu = document.getElementById('user-menu');
+    const userNameSpan = document.getElementById('user-name');
+    const userAvatarImg = document.getElementById('user-avatar-img');
+    const adminLink = document.getElementById('admin-link');
+    
+    if (authButtons) authButtons.classList.add('hidden');
+    if (userMenu) userMenu.classList.remove('hidden');
+    if (userNameSpan && currentUser) {
+        userNameSpan.textContent = currentUser.name;
+    }
+    if (userAvatarImg && currentUser) {
+        userAvatarImg.src = currentUser.avatar || 'https://i.pravatar.cc/100?u=' + currentUser.email;
+    }
+    if (adminLink && currentUser && currentUser.role === 'admin') {
+        adminLink.style.display = 'inline-block';
+    } else if (adminLink) {
+        adminLink.style.display = 'none';
     }
 }
 
+// ============================================
+// UPDATE UI WHEN USER IS LOGGED OUT
+// ============================================
 function updateUIForLoggedOutUser() {
-    document.getElementById('auth-buttons')?.classList.remove('hidden');
-    document.getElementById('user-menu')?.classList.add('hidden');
+    const authButtons = document.getElementById('auth-buttons');
+    const userMenu = document.getElementById('user-menu');
+    const adminLink = document.getElementById('admin-link');
+    const userNameSpan = document.getElementById('user-name');
+    const userAvatarImg = document.getElementById('user-avatar-img');
+    
+    if (authButtons) authButtons.classList.remove('hidden');
+    if (userMenu) userMenu.classList.add('hidden');
+    if (adminLink) adminLink.style.display = 'none';
+    if (userNameSpan) userNameSpan.textContent = '';
+    if (userAvatarImg) {
+        userAvatarImg.src = 'https://i.pravatar.cc/100?u=default';
+    }
 }
 
 function goToOrders() {
@@ -106,7 +147,7 @@ function goToProfile() {
 function initCategorySlider() {
     const container = document.getElementById('categories-container');
     if (!container) return;
-    
+
     container.innerHTML = categoriesData.map(cat => `
         <div class="swiper-slide">
             <div class="category-item" data-category="${cat.name}" onclick="filterByCategory('${cat.name}')">
@@ -119,7 +160,7 @@ function initCategorySlider() {
     `).join('');
 
     if (categorySwiper) categorySwiper.destroy(true, true);
-    
+
     categorySwiper = new Swiper('.category-slider', {
         slidesPerView: 2,
         spaceBetween: 15,
@@ -153,26 +194,25 @@ function filterByCategory(categoryName) {
 function handleSearch() {
     const searchInput = document.getElementById('search-input');
     const searchTerm = searchInput ? searchInput.value.trim() : '';
-    
+
     if (!searchTerm) {
         showToast('Please enter a search term', 'error');
         return;
     }
-    
+
     if (!isLoggedIn) {
         showToast('Please login to search for gigs', 'error');
         openLoginModal();
         return;
     }
-    
+
     window.location.href = `pages/gigs.html?search=${encodeURIComponent(searchTerm)}`;
 }
 
-// Add Enter key support for search
 function setupSearchEnterKey() {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
+        searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 handleSearch();
@@ -187,7 +227,7 @@ function setupSearchEnterKey() {
 function renderAvailableGigs() {
     const container = document.getElementById('gigs-main-container');
     if (!container) return;
-    
+
     container.innerHTML = gigsList.map(gig => `
         <div class="gig-card" onclick="navigateToGigDetails(${gig.id})">
             <div class="gig-image-container">
@@ -226,63 +266,62 @@ function navigateToGigDetails(gigId) {
 // ============================================
 // MODAL FUNCTIONS
 // ============================================
-function openRoleModal() { 
+function openRoleModal() {
     const modal = document.getElementById('roleModal');
     if (modal) {
-        modal.classList.add('active'); 
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 }
 
-function closeRoleModal() { 
+function closeRoleModal() {
     const modal = document.getElementById('roleModal');
     if (modal) {
-        modal.classList.remove('active'); 
+        modal.classList.remove('active');
         document.body.style.overflow = 'auto';
     }
 }
 
-function selectBuyer() { 
-    closeRoleModal(); 
-    openBuyerModal(); 
+function selectBuyer() {
+    closeRoleModal();
+    openBuyerModal();
 }
 
-function selectSeller() { 
-    closeRoleModal(); 
-    showToast('Redirecting to seller registration page...', 'info');
-    setTimeout(() => { window.location.href = 'pages/register-seller.html'; }, 500);
+function selectSeller() {
+    closeRoleModal();
+    setTimeout(() => { window.location.href = 'pages/CreateSellerAccount.html'; }, 500);
 }
 
-function openBuyerModal() { 
+function openBuyerModal() {
     const modal = document.getElementById('buyerModal');
     if (modal) {
-        modal.classList.add('active'); 
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 }
 
-function closeBuyerModal() { 
+function closeBuyerModal() {
     const modal = document.getElementById('buyerModal');
     if (modal) {
-        modal.classList.remove('active'); 
+        modal.classList.remove('active');
         document.body.style.overflow = 'auto';
     }
     const form = document.getElementById('buyerSignupForm');
     if (form) form.reset();
 }
 
-function openLoginModal() { 
+function openLoginModal() {
     const modal = document.getElementById('loginModal');
     if (modal) {
-        modal.classList.add('active'); 
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 }
 
-function closeLoginModal() { 
+function closeLoginModal() {
     const modal = document.getElementById('loginModal');
     if (modal) {
-        modal.classList.remove('active'); 
+        modal.classList.remove('active');
         document.body.style.overflow = 'auto';
     }
     const form = document.getElementById('loginForm');
@@ -315,77 +354,98 @@ function acceptTerms() {
 }
 
 // ============================================
-// AUTH HANDLERS
+// LOGIN HANDLER
 // ============================================
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const remember = document.getElementById('rememberMe').checked;
     
     if (!email || !password) return showToast('Please fill in all fields', 'error');
-    if (!email.includes('@')) return showToast('Valid email required', 'error');
-    if (password.length < 6) return showToast('Password must be 6+ characters', 'error');
     
-    // Simulate login - Replace with actual API call
-    const mockUser = { name: email.split('@')[0], email: email, avatar: 'https://i.pravatar.cc/100?u=' + Date.now() };
-    localStorage.setItem('authToken', 'mock-token-' + Date.now());
-    localStorage.setItem('userData', JSON.stringify(mockUser));
-    
-    isLoggedIn = true;
-    currentUser = mockUser;
-    updateUIForLoggedInUser();
-    
-    showToast(`Welcome back, ${mockUser.name}!`, 'success');
-    setTimeout(() => closeLoginModal(), 500);
+    try {
+        const response = await fetch('php/logIn.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, remember })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            isLoggedIn = true;
+            currentUser = { name: data.username, email: data.email, role: data.role };
+            updateUIForLoggedInUser();
+            showToast(`Welcome back, ${data.username}!`, 'success');
+            closeLoginModal();
+            location.reload();
+        } else {
+            showToast(data.message || 'Invalid email or password', 'error');
+        }
+    } catch (error) {
+        showToast('Login failed', 'error');
+    }
 }
 
-function handleBuyerSignup(e) {
+// ============================================
+// SIGNUP HANDLER
+// ============================================
+async function handleBuyerSignup(e) {
     e.preventDefault();
     const name = document.getElementById('buyerName').value;
     const email = document.getElementById('buyerEmail').value;
     const password = document.getElementById('buyerPassword').value;
     const confirm = document.getElementById('buyerConfirmPassword').value;
     const terms = document.getElementById('buyerTerms').checked;
-    
+
     if (!name || !email || !password || !confirm) return showToast('Please fill in all fields', 'error');
     if (!email.includes('@')) return showToast('Valid email required', 'error');
-    if (password.length < 8) return showToast('Password must be 8+ characters', 'error');
+    if (password.length < 6) return showToast('Password must be 6+ characters', 'error');
     if (password !== confirm) return showToast('Passwords do not match', 'error');
     if (!terms) return showToast('You must accept the Terms & Conditions', 'error');
-    
-    // Simulate signup - Replace with actual API call
-    const mockUser = { name: name, email: email, avatar: 'https://i.pravatar.cc/100?u=' + Date.now() };
-    localStorage.setItem('authToken', 'mock-token-' + Date.now());
-    localStorage.setItem('userData', JSON.stringify(mockUser));
-    
-    isLoggedIn = true;
-    currentUser = mockUser;
-    updateUIForLoggedInUser();
-    
-    showToast(`Welcome to Taskly, ${name}!`, 'success');
-    setTimeout(() => closeBuyerModal(), 500);
+
+    try {
+        const response = await fetch('php/signup.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                username: name, 
+                email: email, 
+                password: password,
+              
+            })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Account created successfully! Please login.`, 'success');
+            closeBuyerModal();
+            setTimeout(() => openLoginModal(), 500);
+        } else {
+            showToast(data.message || 'Signup failed', 'error');
+        }
+    } catch (error) {
+        showToast('Signup failed', 'error');
+    }
 }
 
 // ============================================
 // SETUP ENTER KEY FOR ALL FORMS
 // ============================================
 function setupEnterKeyForForms() {
-    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('keypress', function(e) {
+        loginForm.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 handleLogin(e);
             }
         });
     }
-    
-    // Signup form
+
     const signupForm = document.getElementById('buyerSignupForm');
     if (signupForm) {
-        signupForm.addEventListener('keypress', function(e) {
+        signupForm.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 handleBuyerSignup(e);
@@ -397,8 +457,7 @@ function setupEnterKeyForForms() {
 // ============================================
 // INITIALIZATION
 // ============================================
-window.onclick = function(e) {
-    // Close modals when clicking outside
+window.onclick = function (e) {
     if (e.target.classList.contains('modal-overlay')) {
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
         document.body.style.overflow = 'auto';
@@ -408,20 +467,25 @@ window.onclick = function(e) {
     }
 };
 
-document.addEventListener('keydown', e => { 
-    if (e.key === 'Escape') { 
-        document.querySelectorAll('.modal-overlay, .terms-modal-overlay').forEach(m => m.classList.remove('active')); 
-        document.body.style.overflow = 'auto'; 
-    } 
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay, .terms-modal-overlay').forEach(m => m.classList.remove('active'));
+        document.body.style.overflow = 'auto';
+    }
 });
 
-window.onload = function() {
+window.onload = function () {
     renderAvailableGigs();
     initCategorySlider();
     checkAuthStatus();
     setupSearchEnterKey();
     setupEnterKeyForForms();
     
+    if (localStorage.getItem('triggerPopup') === 'true') {
+        openLoginModal();
+        localStorage.removeItem('triggerPopup');
+    }
+
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
         const emailInput = document.getElementById('loginEmail');

@@ -197,19 +197,19 @@
                 <h2>Welcome <span>Back</span></h2>
                 <p>Sign in to continue your journey</p>
             </div>
-            <form class="modal-form" id="loginForm" onsubmit="handleLogin(event)">
+            <form class="modal-form" id="loginForm"  action="http://localhost/taskly/php/logIn.php" method="post">
                 <div class="input-group">
-                    <input type="email" id="loginEmail" placeholder="Email address" required>
+                    <input type="email" id="loginEmail" name="email" placeholder="Email address" required>
                 </div>
                 <div class="input-group">
-                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <input type="password" id="loginPassword" name="pass" placeholder="Password" required>
                 </div>
                 <div class="form-options">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="rememberMe"> Remember me
+                        <input type="checkbox" id="rememberMe" name="remember"> Remember me
                     </label>
                 </div>
-                <button type="submit" class="modal-btn">Sign In</button>
+                <button type="submit" name="login" class="modal-btn">Sign In</button>
                 <div class="modal-footer">
                     Don't have an account? 
                     <a href="#" class="modal-link" onclick="openRoleModal();closeLoginModal(); return false;">Sign up now</a>
