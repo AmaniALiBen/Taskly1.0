@@ -261,7 +261,7 @@ body {
 }
 
 /* Form Elements */
-.input-group {
+/* .input-group {
     margin-bottom: 18px;
 }
 
@@ -295,7 +295,7 @@ body {
 .input-group textarea::placeholder {
     color: var(--text-secondary);
     opacity: 0.6;
-}
+} */
 
 .form-options {
     display: flex;
