@@ -1,0 +1,237 @@
+/* Profile Page Specific Styles */
+:root {
+    --pro: #7c3aed;
+}
+
+.profile-wrapper {
+    margin-top: 110px;
+    margin-bottom: 66px;
+}
+
+/* Back Button Style - Matching other pages */
+.btn-back-nav {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-right: 15px;
+}
+
+.btn-back-nav:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+/* Profile Header - Glass Card */
+.profile-header {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.65rem;
+    padding: 20px 50px;
+    margin-bottom: 33px;
+    display: flex;
+    align-items: center;
+    gap: 27px;
+}
+
+/* Avatar */
+.profile-avatar {
+    width: 135px;
+    height: 135px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 1.76rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.profile-location {
+    color: var(--text-secondary);
+    font-size: 0.94rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* Two Column Layout */
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 330px;
+    gap: 33px;
+    margin-bottom: 33px;
+}
+
+/* Glass Cards */
+.glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.65rem;
+    padding: 27px;
+    margin-bottom: 27px;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-title i {
+    font-size: 1rem;
+}
+
+.about-text {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+.skills-text {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+/* Languages */
+.languages-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.language-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.language-item i {
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+/* Contact */
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 16px;
+}
+
+.contact-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(124, 58, 237, 0.1);
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: var(--primary-color);
+}
+
+.contact-label {
+    font-size: 0.77rem;
+    color: var(--text-secondary);
+}
+
+.contact-value {
+    font-weight: 500;
+    font-size: 0.94rem;
+}
+
+/* Rating level - Centered */
+.skill-level-card {
+    text-align: center;
+}
+
+.rating-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 18px;
+    border-radius: 33px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: rgba(124, 58, 237, 0.15);
+    color: var(--pro);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    margin-bottom: 13px;
+}
+
+.rating-stars {
+    margin: 11px 0 6px;
+}
+
+.rating-stars i {
+    color: var(--rating-gold);
+    font-size: 0.94rem;
+}
+
+.rating-number {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+}
+
+/* Gigs Section */
+.gigs-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 22px 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.gigs-section-title i {
+    font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .two-columns {
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+
+    .profile-location {
+        justify-content: center;
+    }
+}
