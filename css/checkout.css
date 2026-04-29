@@ -1,0 +1,411 @@
+/* =========================================
+   CHECKOUT PAGE STYLES
+   ========================================= */
+
+/* Navbar */
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-back:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateX(-3px);
+}
+
+/* User Menu */
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.orders-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.orders-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Checkout Wrapper */
+.checkout-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 90px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.checkout-card {
+    background: var(--glass-card-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+}
+
+.checkout-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkout-title i {
+    color: var(--primary-color);
+}
+
+/* Payment methods */
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.method {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.method i {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 1.2rem;
+}
+
+.method span {
+    font-size: 0.75rem;
+}
+
+.method.active {
+    border-color: var(--primary-color);
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.method:hover:not(.active) {
+    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Wallet Section */
+.wallet-section {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(30, 27, 75, 0.3));
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--glass-border);
+}
+
+.wallet-balance {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.wallet-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.wallet-amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+/* Apple Pay Verification */
+.apple-verification {
+    text-align: center;
+    padding: 30px;
+    border: 1px dashed var(--glass-border);
+    border-radius: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.apple-fingerprint-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.apple-verification p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.verify-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.verify-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-top: 15px;
+}
+
+/* Inputs */
+.input-group {
+    margin-bottom: 18px;
+}
+
+.input-group label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    border-color: var(--primary-color);
+}
+
+.row-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* Product */
+.product-box {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.product-box img {
+    width: 80px;
+    height: 70px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.badge {
+    font-size: 11px;
+    color: var(--primary-hover);
+    background: rgba(124, 58, 237, 0.2);
+    padding: 4px 8px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-top: 6px;
+}
+
+/* Features */
+.features {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 15px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+.features div {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.features i {
+    color: var(--success);
+    margin-right: 6px;
+}
+
+/* Price */
+.price div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.price .total {
+    border-top: 1px solid var(--glass-border);
+    padding-top: 10px;
+    color: white;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+/* Pay Button */
+.pay-btn {
+    margin-top: 15px;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    background: var(--primary-color);
+    color: white;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.pay-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.pay-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pay-btn.success {
+    background: var(--success);
+}
+
+/* Secure */
+.secure {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Toast */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    min-width: 300px;
+    padding: 16px 20px;
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transform: translateX(100px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast.success {
+    border-left-color: var(--success);
+}
+
+.toast.error {
+    border-left-color: var(--error);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .checkout-wrapper {
+        grid-template-columns: 1fr;
+    }
+    .payment-methods {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .user-menu {
+        gap: 10px;
+    }
+    .orders-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .payment-methods {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

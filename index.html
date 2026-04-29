@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly | Freelance Marketplace</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/gigsgrid.css">
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+    <div class="animated-background"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+            
+            <!-- Auth Buttons (shown when logged out) -->
+            <div id="auth-buttons" class="auth-buttons">
+                <button class="button-small button-outline" onclick="openLoginModal()">Login</button>
+                <button class="button-small button-primary" onclick="openRoleModal()">Sign Up</button>
+            </div>
+
+            <!-- User Menu (shown when logged in) -->
+            <div id="user-menu" class="user-menu hidden">
+                <button class="orders-btn" onclick="goToOrders()">
+                    <i class="fas fa-shopping-bag"></i> Orders
+                </button>
+                <div class="user-avatar" onclick="goToProfile()">
+                    <img id="user-avatar-img" src="https://i.pravatar.cc/100?u=default" alt="Avatar">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero-container">
+            <div class="hero-inner-content">
+                <div class="pro-status">
+                    <span class="status-indicator"></span> 
+                    Top-Rated Professional Network
+                </div>
+                <h1>Make your vision <br> <span class="white-highlight">come true.</span></h1>
+                <p>Connect with expert freelancers to turn your ideas into reality through high-quality design and development.</p>
+                
+                <div class="search-wrapper">
+                    <input type="text" id="search-input" placeholder="What gig are you looking for?">
+                    <button class="search-button" onclick="handleSearch()">Search</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Categories Slider Section -->
+        <div class="categories-section">
+            <div class="section-header">
+                <h2>Browse Categories</h2>
+                <div class="swiper-nav-buttons">
+                    <div class="swiper-button-prev-custom">
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="swiper-button-next-custom">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="category-slider-container">
+                <div class="swiper category-slider" id="category-slider">
+                    <div class="swiper-wrapper" id="categories-container">
+                        <!-- Categories will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popular Gigs Section -->
+        <div class="section-header">
+            <h2 class="popular-gigs-title">Popular Gigs</h2>
+        </div>
+        <div id="gigs-main-container" class="gigs-main-grid"></div>
+    </main>
+
+    <!-- Terms and Conditions Modal -->
+    <div id="termsModal" class="terms-modal-overlay">
+        <div class="terms-modal-card">
+            <button class="terms-modal-close" onclick="closeTermsModal()">&times;</button>
+            <div class="terms-modal-header">
+                <div class="terms-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <h2>Terms & Conditions</h2>
+                <p>for Buyers on Taskly</p>
+            </div>
+            <div class="terms-modal-body">
+                <div class="terms-content">
+                    <h4>1. Placing an Order</h4>
+                    <p>When you place an order on Taskly, you agree to provide clear and complete requirements for your project. Once you submit your requirements and click "Submit & Start Project," your requirements become locked and cannot be changed. This ensures the seller can begin working based on the exact information you provided. You are responsible for reviewing your requirements before submission.</p>
+
+                    <h4>2. Payment Terms</h4>
+                    <p>Full payment is required before any seller begins working on your order. Your payment is held securely in Taskly's escrow system. Funds are only released to the seller after you review and accept the delivered work. You will not be charged any additional platform fees beyond the displayed price. The service fee is included in the total amount shown at checkout.</p>
+
+                    <h4>3. Order Completion</h4>
+                    <p>You have 7 days to review the delivered work after a seller submits it. During this review period, you can either accept the delivery (which releases payment to the seller and marks the order as completed) or request a revision (asking the seller to make changes to the work). If you do not take any action within 7 days, the order may be automatically marked as completed.</p>
+
+                    <h4>4. Revisions</h4>
+                    <p>Each order comes with 3 free revisions (unless the gig specifies otherwise). Revision requests must be clear and specific about what changes you need. Additional revisions beyond the free limit may require extra payment. Revision requests cannot be made after you have accepted the delivery.</p>
+
+                    <h4>5. Cancellation Policy</h4>
+                    <p>You may request to cancel an order under the following conditions: Before submitting requirements - full refund. After requirements are locked but no work delivered - 50% refund. After delivery has been submitted - no refund unless approved through dispute resolution. All cancellation requests are reviewed by our support team. Refunds are returned to your Taskly wallet balance.</p>
+
+                    <h4>6. Dispute Resolution</h4>
+                    <p>If you are unsatisfied with the delivered work and cannot reach an agreement with the seller, you can file a complaint using the "Report Issue" button on the order page. Our support team will review your complaint within 24 hours and may request additional evidence. Possible resolutions include requesting additional revisions, partial refund, full refund, or order cancellation. All dispute decisions are final and binding.</p>
+
+                    <h4>7. Communication</h4>
+                    <p>You agree to communicate respectfully with sellers at all times. Harassment, abusive language, or any form of disrespectful behavior may result in account suspension. All communication regarding an order should take place within the Taskly messaging system. Sharing personal contact information before order completion is prohibited.</p>
+
+                    <h4>8. Your Responsibilities as a Buyer</h4>
+                    <p>As a buyer on Taskly, you agree to: provide clear and detailed project requirements, review deliveries within a reasonable timeframe, respond to seller messages in a timely manner, release payment when work is satisfactory, request revisions respectfully within the agreed limits, and not request work outside the original scope without additional payment.</p>
+
+                    <h4>9. Wallet and Funds</h4>
+                    <p>Your Taskly wallet holds your funds securely. You can deposit money using credit card, PayPal, or Apple Pay. Your wallet PIN adds an extra layer of security for withdrawals and payments. You are responsible for keeping your PIN confidential. Taskly will never ask for your PIN outside of the payment verification process.</p>
+
+                    <h4>10. Intellectual Property</h4>
+                    <p>Upon full payment and order completion, all intellectual property rights for the delivered work transfer to you, the buyer. The seller may not reuse, resell, or claim ownership of the work after the order is completed and paid for.</p>
+
+                    <h4>11. Prohibited Activities</h4>
+                    <p>As a buyer, you agree NOT to: request work outside the agreed scope without paying extra, share personal contact information before order completion, attempt to pay sellers outside the Taskly platform, submit fake reviews or manipulate ratings, use abusive or harassing language, request illegal or offensive content, or claim work as your own before payment is released.</p>
+
+                    <h4>12. Account Suspension</h4>
+                    <p>Taskly reserves the right to suspend or terminate your account if you violate these terms. Violations include but are not limited to: non-payment, harassment, attempting to bypass the platform, submitting fraudulent complaints, or repeatedly requesting unreasonable revisions.</p>
+
+                    <h4>13. Limitation of Liability</h4>
+                    <p>Taskly is a platform connecting buyers with sellers. While we strive to ensure quality, we are not responsible for the quality of work delivered. Our liability is limited to the amount you paid for the specific order in dispute. We are not liable for any indirect or consequential damages.</p>
+
+                    <h4>14. Modification of Terms</h4>
+                    <p>Taskly may update these terms at any time. You will be notified of significant changes via email or platform notification. Continued use of the platform after changes constitutes acceptance of the modified terms.</p>
+
+                    <h4>15. Governing Law</h4>
+                    <p>These terms shall be governed by the laws applicable in your jurisdiction. Any disputes arising from your use of Taskly shall be resolved through binding arbitration in accordance with our dispute resolution process.</p>
+
+                    <h4>16. Contact Information</h4>
+                    <p>If you have any questions about these terms, please contact us at: support@taskly.com</p>
+
+                    <p style="margin-top: 20px; font-weight: 700;">Last Updated: January 1, 2025</p>
+                </div>
+            </div>
+            <div class="terms-modal-footer">
+                <button class="btn-terms-cancel" onclick="closeTermsModal()">Close</button>
+                <button class="btn-terms-accept" onclick="acceptTerms()">I Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROLE MODAL -->
+    <div id="roleModal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeRoleModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-icon"><i class="fas fa-users"></i></div>
+                <h2>Join <span>Taskly</span></h2>
+                <p>Choose how you want to use Taskly</p>
+            </div>
+            <div class="role-options">
+                <div class="role-option" onclick="selectBuyer()">
+                    <div class="role-icon"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="role-info">
+                        <h4>I'm a Buyer</h4>
+                        <p>I want to hire freelancers and purchase services</p>
+                    </div>
+                    <div class="role-arrow">→</div>
+                </div>
+                <div class="role-option" onclick="selectSeller()">
+                    <div class="role-icon"><i class="fas fa-briefcase"></i></div>
+                    <div class="role-info">
+                        <h4>I'm a Seller</h4>
+                        <p>I want to offer my services and earn money</p>
+                    </div>
+                    <div class="role-arrow">→</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeLoginModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-icon"><i class="fas fa-user-astronaut"></i></div>
+                <h2>Welcome <span>Back</span></h2>
+                <p>Sign in to continue your journey</p>
+            </div>
+            <form class="modal-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <input type="email" id="loginEmail" placeholder="Email address" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe"> Remember me
+                    </label>
+                </div>
+                <button type="submit" class="modal-btn">Sign In</button>
+                <div class="modal-footer">
+                    Don't have an account? 
+                    <a href="#" class="modal-link" onclick="openRoleModal(); return false;">Sign up now</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BUYER SIGNUP MODAL -->
+    <div id="buyerModal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeBuyerModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-icon"><i class="fas fa-shopping-bag"></i></div>
+                <h2>Buyer <span>Registration</span></h2>
+                <p>Start hiring freelancers and purchase services</p>
+            </div>
+            <form class="modal-form" id="buyerSignupForm" onsubmit="handleBuyerSignup(event)">
+                <div class="input-group">
+                    <input type="text" id="buyerName" placeholder="Full name" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="buyerEmail" placeholder="Email address" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="buyerPassword" placeholder="Password (min. 8 characters)" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="buyerConfirmPassword" placeholder="Confirm password" required>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="buyerTerms">
+                        I agree to the <a href="#" onclick="openTermsModal(); return false;" style="color: var(--primary-color); text-decoration: none;">Terms & Conditions</a>
+                    </label>
+                </div>
+                <button type="submit" class="modal-btn">Register as Buyer</button>
+                <div class="modal-footer">
+                    Already have an account? 
+                    <a href="#" class="modal-link" onclick="closeBuyerModal(); openLoginModal(); return false;">Sign in here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>

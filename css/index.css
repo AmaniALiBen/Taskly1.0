@@ -1,0 +1,261 @@
+/* =========================================
+   INDEX PAGE UNIQUE STYLES
+   ========================================= */
+
+/* Hero Section */
+.hero-container {
+    padding: 120px 20px 40px;
+    text-align: center;
+}
+
+.hero-inner-content {
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.hero-container h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 18px;
+    color: var(--primary-color);
+}
+
+.white-highlight {
+    color: #ffffff;
+}
+
+.pro-status {
+    display: inline-block;
+    background: rgba(124, 58, 237, 0.1);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+}
+
+/* Search Bar - Fixed white background issue */
+.search-wrapper {
+    display: flex;
+    background: #0a0a10;
+    border: 1px solid var(--glass-border);
+    padding: 5px;
+    border-radius: 1.75rem;
+    max-width: 600px;
+    margin: 30px auto;
+}
+
+.search-wrapper input {
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    padding: 12px 15px;
+    color: #fff !important;
+    outline: none;
+}
+
+.search-wrapper input:focus {
+    background: transparent !important;
+    outline: none;
+}
+
+.search-wrapper input:-webkit-autofill,
+.search-wrapper input:-webkit-autofill:hover,
+.search-wrapper input:-webkit-autofill:focus,
+.search-wrapper input:-webkit-autofill:active {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: #ffffff;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent !important;
+}
+
+.search-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0 30px;
+    border-radius: 1.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    flex-shrink: 0;
+}
+
+.search-button:hover {
+    background: var(--primary-hover);
+}
+
+/* Category Slider Section */
+.categories-section {
+    margin-bottom: 50px;
+    position: relative;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+/* Swiper Navigation Buttons */
+.category-slider-container {
+    position: relative;
+    overflow: hidden;
+    padding: 10px 0;
+}
+
+.swiper-button-prev-custom,
+.swiper-button-next-custom {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: 0.3s;
+    color: var(--text-secondary);
+}
+
+.swiper-button-prev-custom {
+    left: -15px;
+}
+
+.swiper-button-next-custom {
+    right: -15px;
+}
+
+.swiper-button-prev-custom:hover,
+.swiper-button-next-custom:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Category Items */
+.category-item {
+    background: var(--glass-white);
+    border: 1px solid var(--glass-border);
+    padding: 1.4rem;
+    border-radius: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+}
+
+.category-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+    z-index: 10;
+}
+
+.category-icon {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 10px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.category-label {
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* Popular Gigs Title */
+.popular-gigs-title {
+    margin-bottom: 25px;
+    font-weight: 800;
+}
+
+/* swiper slide */
+.swiper-slide {
+    overflow: visible !important;
+}
+
+.category-slider-container {
+    overflow: visible;
+    padding: 10px 5px;
+    margin: 0 -5px;
+}
+
+.category-slider {
+    overflow: visible !important;
+    padding: 5px;
+}
+/* Custom Scrollbar for Terms Modal */
+.terms-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.terms-modal-body::-webkit-scrollbar-track {
+    background: var(--glass-border);
+    border-radius: 10px;
+}
+
+.terms-modal-body::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
+}
+
+.terms-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
+}
+
+/* Firefox scrollbar */
+.terms-modal-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--glass-border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-container {
+        padding: 100px 15px 30px;
+    }
+    .search-wrapper {
+        margin: 20px auto;
+    }
+    .swiper-button-prev-custom {
+        left: -5px;
+    }
+    .swiper-button-next-custom {
+        right: -5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-wrapper {
+        flex-direction: column;
+        border-radius: 1rem;
+    }
+    .search-button {
+        border-radius: 1rem;
+        margin-top: 5px;
+        padding: 10px;
+    }
+    .section-header h2 {
+        font-size: 1.2rem;
+    }
+}

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly | Gig Details</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/gig-details.css">
+</head>
+
+<body>
+
+    <div class="animated-background"></div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="report-modal-overlay">
+        <div class="report-modal-card">
+            <button class="report-modal-close" onclick="closeReportModal()">&times;</button>
+            <div class="report-modal-header">
+                <h2>Report an issue with this Gig</h2>
+                <p>What is the issue?</p>
+            </div>
+            <div class="report-form">
+                <div class="report-radio-group">
+                    <label class="report-radio-option">
+                        <input type="radio" name="report-issue" value="prohibited">
+                        <span>Prohibited service</span>
+                    </label>
+                    <label class="report-radio-option">
+                        <input type="radio" name="report-issue" value="inappropriate">
+                        <span>Inappropriate content</span>
+                    </label>
+                    <label class="report-radio-option">
+                        <input type="radio" name="report-issue" value="non-original">
+                        <span>Non-original elements (text, images, audio/video)</span>
+                    </label>
+                    <label class="report-radio-option">
+                        <input type="radio" name="report-issue" value="copyright">
+                        <span>Intellectual property violation (copyright, trademark)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="report-modal-footer">
+                <button class="report-next-btn" onclick="submitReport()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="nav-left">
+                <button class="btn-back" onclick="goBack()" title="Go Back">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <a href="../index.html" class="brand-logo">Task<span>ly</span></a>
+            </div>
+
+            <!-- User Menu (Avatar + Orders button) -->
+            <div class="user-menu">
+                <button class="orders-btn" onclick="goToOrders()">
+                    <i class="fas fa-shopping-bag"></i> Orders
+                </button>
+                <div class="user-avatar" onclick="goToProfile()">
+                    <img id="user-avatar-img" src="https://i.pravatar.cc/100?u=default" alt="Avatar">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <main>
+            <!-- LEFT CONTENT -->
+            <div class="content-left">
+                <!-- Gig Title -->
+                <h1 id="title" class="title-hero">Elite Branding & Identity System</h1>
+
+                <!-- Gig Rating - UNDER the title -->
+                <div class="gig-rating-container" id="gig-rating-container"></div>
+
+                <!-- Seller Box -->
+                <!-- Seller Box - Clickable to go to seller profile -->
+                <div class="seller-card glass-card" onclick="goToSellerProfile()" style="cursor: pointer;">
+                    <img id="avatar" class="avatar" src="https://i.pravatar.cc/100?u=aura_vector" alt="Seller">
+                    <div class="seller-info">
+                        <h4>
+                            <span id="seller">Vector Aura</span>
+                            <span id="levelBadge" class="level-badge">Expert</span>
+                        </h4>
+                    </div>
+                    <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-secondary);"></i>
+                </div>
+
+                <!-- Gallery -->
+                <div class="gallery-container">
+                    <div class="main-image-wrapper">
+                        <img id="mainImage" src="" alt="Main Preview">
+                    </div>
+                    <div class="thumbnails-grid" id="thumbnails"></div>
+                </div>
+
+                <!-- Description -->
+                <div class="overview-card glass-card">
+                    <h2 class="section-title">Description</h2>
+                    <div id="desc" class="description-text"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT CONTENT -->
+            <div class="content-right">
+                <!-- Report Button -->
+                <div class="report-wrapper">
+                    <button class="btn-report" onclick="openReportModal()">
+                        <i class="fas fa-flag"></i> Report
+                    </button>
+                </div>
+
+                <!-- Package Card -->
+                <div class="package-card glass-card">
+                    <div class="tabs-header">
+                        <div onclick="switchTab('basic')" id="tab-basic" class="package-tab active">BASIC</div>
+                        <div onclick="switchTab('standard')" id="tab-standard" class="package-tab">STANDARD</div>
+                        <div onclick="switchTab('premium')" id="tab-premium" class="package-tab">PREMIUM</div>
+                    </div>
+
+                    <div class="package-body">
+                        <div class="price-row">
+                            <h3 id="pkgName" class="pkg-name">Startup Foundation</h3>
+                            <span id="pkgPrice" class="pkg-price">$150</span>
+                        </div>
+
+                        <p id="pkgDesc" class="pkg-desc">Perfect for early stage startups needing a professional
+                            starting point.</p>
+
+                        <div id="features" class="features-list"></div>
+
+                        <div class="meta-row">
+                            <span id="delivery"><i class="far fa-clock"></i> 3 Days Delivery</span>
+                            <span id="revisions"><i class="fas fa-sync"></i> 2 Revisions</span>
+                        </div>
+
+                        <button onclick="buy()" class="btn-buy">Continue to Purchase</button>
+                        <p style="text-align: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 10px;">
+                            Secure Payment via Taskly Escrow</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/gig-details.js"></script>
+</body>
+
+</html>
