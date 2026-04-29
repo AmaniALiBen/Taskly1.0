@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freelancer Profile | Taskly</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/gigsgrid.css">
+    <link rel="stylesheet" href="../css/freelancer-profile.css">
+</head>
+
+<body>
+    <div class="animated-background"></div>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div style="display: flex; align-items: center;">
+                <button class="btn-back-nav" onclick="goBack()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container profile-wrapper" id="profile-wrapper">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <img id="profile-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Freelancer">
+            </div>
+            <div>
+                <h1 class="profile-name" id="freelancer-name">Ahmed Mansour</h1>
+                <div class="profile-location">
+                    <i class="fas fa-map-marker-alt"></i> <span id="freelancer-country">Cairo, Egypt</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="two-columns">
+            <!-- Left Column -->
+            <div>
+                <!-- About Card -->
+                <div class="glass-card">
+                    <div class="card-title">
+                        <i class="fas fa-user-circle"></i> About Me
+                    </div>
+                    <div class="about-text" id="freelancer-bio">
+                        Full-Stack Developer with 7+ years of experience. I build high-quality web applications 
+                        with clean code and attention to detail. I deliver projects on time and provide ongoing support.
+                    </div>
+                </div>
+
+                <!-- Skills Card -->
+                <div class="glass-card">
+                    <div class="card-title">
+                        <i class="fas fa-code"></i> Skills
+                    </div>
+                    <div class="skills-text" id="freelancer-skills">
+                        JavaScript, React, Node.js, Python, HTML5, CSS3, MongoDB, Git
+                    </div>
+                </div>
+
+                <!-- Languages Card -->
+                <div class="glass-card">
+                    <div class="card-title">
+                        <i class="fas fa-language"></i> Languages
+                    </div>
+                    <div class="languages-list" id="freelancer-languages">
+                        <!-- Languages loaded by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <!-- Contact Card -->
+                <div class="glass-card">
+                    <div class="card-title">
+                        <i class="fas fa-envelope"></i> Contact
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <div class="contact-label">Email</div>
+                            <div class="contact-value" id="freelancer-email">ahmed.mansour@taskly.com</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Level Card -->
+                <div class="glass-card skill-level-card">
+                    <div class="card-title">
+                        <i class="fas fa-star"></i> Skill Level
+                    </div>
+                    <div class="rating-level" id="freelancer-level">
+                        <i class="fas fa-crown"></i> Pro
+                    </div>
+                    <div class="rating-stars" id="freelancer-rating"></div>
+                    <div class="rating-number" id="freelancer-orders">4.9 · 247 orders</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gigs Section -->
+        <div class="gigs-section-title">
+            <i class="fas fa-briefcase"></i> Gigs Published
+        </div>
+        <div id="gigs-container" class="gigs-main-grid">
+            <!-- Gigs loaded by JS -->
+        </div>
+    </main>
+
+    <script src="../js/freelancer-profile.js"></script>
+    <script>
+        /**
+         * Go back to the previous page in browser history
+         * If no previous page exists, go to home page
+         */
+        function goBack() {
+            if (document.referrer && document.referrer !== "") {
+                // If there is a referrer (page came from somewhere), go back
+                window.history.back();
+            } else {
+                // Fallback to home page if no history exists
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

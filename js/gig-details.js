@@ -86,7 +86,7 @@ function goToProfile() {
 
 // NEW FUNCTION: Go to Seller Profile
 function goToSellerProfile() {
-    window.location.href = `seller-profile.html?id=${gig.sellerId}`;
+    window.location.href = `freelancer-profile.html?id=${gig.sellerId}`;
 }
 
 function goToCheckout() {
