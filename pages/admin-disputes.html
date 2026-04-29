@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Taskly Admin | Dispute Resolution Hub</title>
+    
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- Page Specific Styles -->
+    <link rel="stylesheet" href="../css/admin-disputes.css">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="animated-bg"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center;">
+                <button class="btn-back-nav" onclick="window.location.href='disputes.html'">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="admin-main-container">
+        <div class="admin-dispute-container">
+            <div class="dispute-two-columns">
+                
+                <!-- LEFT PANEL - Dispute Details -->
+                <div class="detail-panel">
+                    <div class="detail-header">
+                        <h2><i class="fas fa-scale-balanced"></i> Dispute inspector</h2>
+                        <p>Click any report row to view details</p>
+                    </div>
+                    <div class="detail-body" id="detailContent">
+                        <div style="text-align:center; padding:50px; color:#64748b;">
+                            <i class="fas fa-inbox" style="font-size:2rem;"></i>
+                            <p>Select a dispute from the list</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT PANEL - Disputes List -->
+                <div class="right-panel">
+                    <!-- Stats Cards -->
+                    <div class="stats-row" id="statsRow">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-flag-checkered"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-title">Total Reports</div>
+                                <div class="stat-number" id="totalCount">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-title">Pending</div>
+                                <div class="stat-number" id="pendingCount">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-title">In Review</div>
+                                <div class="stat-number" id="reviewCount">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-title">Resolved</div>
+                                <div class="stat-number" id="resolvedCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-section">
+                        <div class="filter-tabs" id="filterTabs">
+                            <div class="filter-chip active" data-filter="all">All reports</div>
+                            <div class="filter-chip" data-filter="pending">Pending</div>
+                            <div class="filter-chip" data-filter="in-review">In review</div>
+                            <div class="filter-chip" data-filter="resolved">Resolved</div>
+                        </div>
+                    </div>
+
+                    <!-- Table Header -->
+                    <div class="table-header">
+                        <div>ID</div>
+                        <div>Reason</div>
+                        <div>Complainant</div>
+                        <div>Raised by</div>
+                        <div>Status</div>
+                    </div>
+
+                    <!-- Complaints List Scroll -->
+                    <div class="complaint-list-scroll" id="complaintListScroll">
+                        <div style="text-align:center; padding:30px;">Loading disputes...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION MODAL -->
+    <div id="actionModal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3><i class="fas fa-gavel" style="color:#7c3aed;"></i> Take action</h3>
+                <button onclick="closeActionModal()" class="modal-close-btn">&times;</button>
+            </div>
+            <p style="color:#94a3b8; margin:10px 0 20px;">Select action for this dispute</p>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="refund_buyer">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Full refund to buyer (cancel order)</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="release_payment">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Release payment to seller</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="partial_refund">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Partial refund (50%)</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="dismiss">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Dismiss complaint</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="suspend_seller">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Suspend Seller</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="resolutionAction" value="suspend_buyer">
+                    <span class="custom-radio"></span>
+                    <span class="radio-text">Suspend Buyer</span>
+                </label>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button class="btn btn-outline-light" onclick="closeActionModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirmActionBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUSPEND SELLER WARNING MODAL -->
+    <div id="warningSellerModal" class="modal-overlay">
+        <div class="modal-card warning">
+            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="text-align:center;">⚠️ Suspend Seller</h3>
+            <p style="text-align:center; color:#94a3b8; margin-bottom:16px;">
+                You are about to suspend <strong id="suspendSellerName">this seller</strong>
+            </p>
+            <div class="warning-text">
+                <i class="fas fa-ban"></i> Suspending this seller will:
+                <ul>
+                    <li>Cancel ALL their active orders</li>
+                    <li>Refund all buyers in full</li>
+                    <li>Prevent them from creating new gigs</li>
+                    <li>Remove their gigs from the marketplace</li>
+                </ul>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button class="btn btn-outline-light" onclick="closeSellerWarningModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmSellerWarningBtn">Confirm Suspension</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUSPEND BUYER WARNING MODAL -->
+    <div id="warningBuyerModal" class="modal-overlay">
+        <div class="modal-card warning">
+            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="text-align:center;">⚠️ Suspend Buyer</h3>
+            <p style="text-align:center; color:#94a3b8; margin-bottom:16px;">
+                You are about to suspend <strong id="suspendBuyerName">this buyer</strong>
+            </p>
+            <div class="warning-text">
+                <i class="fas fa-ban"></i> Suspending this buyer will:
+                <ul>
+                    <li>Cancel ALL their active orders</li>
+                    <li>Release payments to sellers for any in-progress orders</li>
+                    <li>Prevent them from placing new orders</li>
+                    <li>Refund any pending wallet balance</li>
+                </ul>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button class="btn btn-outline-light" onclick="closeBuyerWarningModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmBuyerWarningBtn">Confirm Suspension</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="../js/admin-disputes.js"></script>
+</body>
+
+</html>

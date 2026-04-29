@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly | Seller Dashboard</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/sellerDashboard.css">
+    <link rel="stylesheet" href="../css/gigManage.css">
+    <link rel="stylesheet" href="../css/seller-orders.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="animated-background"></div>
+
+<nav class="navbar">
+    <div class="container nav-content">
+        <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+        <div class="nav-profile-wrapper">
+            <div class="nav-avatar-circle"></div>
+        </div>
+    </div>
+</nav>
+
+<div class="dashboard-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        
+        <!-- Profile Section in Sidebar -->
+        <div class="sidebar-profile">
+            <div class="profile-avatar-sidebar" id="sidebarAvatar">A</div>
+            <div class="profile-info-sidebar">
+                <div class="profile-name" id="sidebarName">Ahmed Ali</div>
+                <div class="profile-email">ahmed@taskly.com</div>
+            </div>
+        </div>
+        
+        <!-- Sidebar Navigation -->
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">MAIN MENU</div>
+                <button class="nav-item active" onclick="switchTab('profile')">
+                    <i class="fas fa-user"></i> <span>Profile</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('wallet')">
+                    <i class="fas fa-wallet"></i> <span>Billings & Earnings</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('gigs')">
+                    <i class="fas fa-briefcase"></i> <span>Manage Gigs</span>
+                </button>
+                <button class="nav-item" onclick="switchTab('orders')">
+                    <i class="fas fa-shopping-cart"></i> <span>Orders</span>
+                </button>
+            </div>
+        </div>
+        
+       
+        
+        <div class="sidebar-footer">
+            
+            <button class="footer-item">
+                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- ========== PROFILE TAB ========== -->
+        <section id="profile-tab" class="tab-content active">
+            <div class="section-header">
+                <div>
+                    <div class="section-title"><i class="fas fa-user-circle"></i> Personal Information</div>
+                    <div class="section-subtitle">Manage your account details and preferences</div>
+                </div>
+                <button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Profile</button>
+            </div>
+            
+            <div class="profile-row">
+                <div class="avatar-upload">
+                    <div class="profile-avatar" id="avatarPreview">A</div>
+                    <input type="file" id="avatarInput" hidden accept="image/*">
+                    <button type="button" class="btn-icon" onclick="document.getElementById('avatarInput').click()">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                <div class="profile-fields">
+                    <div class="input-group">
+                        <label class="input-label">Full Name</label>
+                        <input type="text" id="profName" class="luxury-input name-field" value="Ahmed Ali">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="input-group">
+                    <label class="input-label">Email Address</label>
+                    <input type="email" id="profEmail" class="luxury-input" value="ahmed@taskly.com" readonly disabled>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Country</label>
+                    <select id="profCountry" class="luxury-input custom-select">
+                        <option value="">Select Country</option>
+                        <option value="Egypt">Egypt</option>
+                        <option value="Saudi Arabia">Saudi Arabia</option>
+                        <option value="UAE">United Arab Emirates</option>
+                        <option value="Kuwait">Kuwait</option>
+                        <option value="Qatar">Qatar</option>
+                        <option value="Jordan">Jordan</option>
+                        <option value="Morocco">Morocco</option>
+                        <option value="Tunisia">Tunisia</option>
+                        <option value="Libya" selected>Libya</option>
+                        <option value="Algeria">Algeria</option>
+                        <option value="USA">United States</option>
+                        <option value="UK">United Kingdom</option>
+                        <option value="Canada">Canada</option>
+                        <option value="Germany">Germany</option>
+                        <option value="France">France</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Professional Summary <span class="char-counter" id="bioCounter">0/500</span></label>
+                <textarea id="profBio" class="luxury-input auto-resize" maxlength="500" placeholder="Tell buyers about yourself and your expertise...">Software developer specialized in UI/UX and web interfaces. I have 5+ years of experience building modern web applications and working with international clients.</textarea>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Skills <small>(Separate with commas)</small></label>
+                <textarea id="profSkills" class="luxury-input skills-field" placeholder="UI/UX Design, React.js, Node.js, Python">UI/UX Design, React.js, Node.js, Python, Tailwind CSS, Figma</textarea>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Languages</label>
+                <div class="languages-container">
+                    <div class="lang-select-wrapper">
+                        <select id="langSelect" class="luxury-input custom-select">
+                            <option value="">-- Select Language --</option>
+                            <option value="English">English (Native)</option>
+                            <option value="Arabic">Arabic (Native)</option>
+                            <option value="French">French</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="German">German</option>
+                            <option value="Italian">Italian</option>
+                            <option value="Turkish">Turkish</option>
+                        </select>
+                        <button type="button" class="btn-add-lang" onclick="addLanguage()">+ Add</button>
+                    </div>
+                    <div class="lang-tags" id="languagesContainer"></div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-lock"></i> Security</div>
+            </div>
+            
+            <div class="security-grid">
+                <input type="password" id="oldPass" class="luxury-input" placeholder="Current Password">
+                <input type="password" id="newPass" class="luxury-input" placeholder="New Password">
+                <input type="password" id="confirmPass" class="luxury-input" placeholder="Confirm Password">
+                <button class="btn-update" onclick="updatePassword()">Update</button>
+            </div>
+        </section>
+
+        <!-- ========== WALLET TAB ========== -->
+        <section id="wallet-tab" class="tab-content">
+            <div class="section-header">
+                <div>
+                    <div class="section-title"><i class="fas fa-wallet"></i> Billings & Earnings</div>
+                    <div class="section-subtitle">Manage your payouts</div>
+                </div>
+            </div>
+            
+            <div class="wallet-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Available Balance</div>
+                    <div class="stat-number primary" id="availableBalance">$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Pending Clearance</div>
+                    <div class="stat-number" id="pendingBalance">$0.00</div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="input-group">
+                    <label class="input-label">Withdrawal Method</label>
+                    <div class="method-buttons">
+                        <button type="button" class="method-btn" data-method="bank" onclick="setWithdrawMethod('bank')">
+                            <i class="fas fa-university"></i> Bank
+                        </button>
+                        <button type="button" class="method-btn" data-method="paypal" onclick="setWithdrawMethod('paypal')">
+                            <i class="fab fa-paypal"></i> PayPal
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label" id="methodLabel">IBAN / Account Number</label>
+                    <input type="text" id="payoutAccount" class="luxury-input" placeholder="Enter account details">
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="input-group">
+                    <label class="input-label">Amount ($)</label>
+                    <input type="number" id="payoutAmount" class="luxury-input" placeholder="0.00">
+                </div>
+                <div class="input-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn-withdraw" onclick="requestWithdrawal()">Withdraw Funds</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-history"></i> Transaction History</div>
+            </div>
+            <div id="transactionsList" class="empty-state">
+                <div class="empty-message">
+                    <i class="fas fa-receipt"></i>
+                    <p>No transactions yet</p>
+                    <span>Your withdrawals and earnings will appear here</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== GIGS TAB (Manage Gigs) ========== -->
+        <section id="gigs-tab" class="tab-content">
+            <div class="manage-container">
+                <div class="page-header-box">
+                    <div class="title-wrap">
+                        <h2 class="page-title">Manage <span>Gigs</span></h2>
+                        <p class="page-subtitle">Your professional service portfolio</p>
+                    </div>
+                    <a href="createGig.html" class="btn-add-minimal">
+                        <i class="fas fa-plus"></i>
+                        <span>Add New Gig</span>
+                    </a>
+                </div>
+
+                <div class="mini-stats-grid">
+                    <div class="stat-card-slim">
+                        <div class="s-icon"><i class="fas fa-bolt"></i></div>
+                        <div class="s-info">
+                            <span class="s-label">Active</span>
+                            <span class="s-value" id="activeCount">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card-slim">
+                        <div class="s-icon"><i class="fas fa-pause-circle"></i></div>
+                        <div class="s-info">
+                            <span class="s-label">Paused</span>
+                            <span class="s-value" id="pausedCount">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-tabs-row">
+                    <button class="tab-link active" onclick="filterGigs('active', event)">Active Gigs</button>
+                    <button class="tab-link" onclick="filterGigs('paused', event)">Paused Gigs</button>
+                </div>
+
+                <div class="gigs-portrait-grid" id="gigsGrid"></div>
+            </div>
+        </section>
+
+    
+        <section id="orders-tab" class="tab-content">
+             <div class="page-header">
+            <h1>My Sales</h1>
+            <p>Track your orders and earnings</p>
+        </div>
+
+        <div class="stats-overview">
+    <div class="stat-card">
+        <i class="fas fa-shopping-cart"></i>
+        <div class="stat-info">
+            <span class="stat-title">Total Orders</span>
+            <span class="stat-number" id="total-orders-card">0</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-clock"></i>
+        <div class="stat-info">
+            <span class="stat-title">In Progress</span>
+            <span class="stat-number" id="active-orders-count">0</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-check-circle"></i>
+        <div class="stat-info">
+            <span class="stat-title">Completed</span>
+            <span class="stat-number" id="completed-count">0</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-hourglass-half"></i>
+        <div class="stat-info">
+            <span class="stat-title">Awaiting Requirements</span>
+            <span class="stat-number" id="awaiting-count">0</span>
+        </div>
+    </div>
+</div>
+
+        <div class="tabs">
+            <div class="tab-item active" onclick="filterOrders('awaiting')">Awaiting Requirements</div>
+            <div class="tab-item" onclick="filterOrders('active')">In Progress</div>
+            <div class="tab-item" onclick="filterOrders('completed')">Completed</div>
+            <div class="tab-item" onclick="filterOrders('cancelled')">Cancelled</div>
+        </div>
+
+        <div id="orders-list">
+            <!-- JavaScript will inject cards here -->
+        </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <h3>Permanently Delete?</h3>
+        <p>This action cannot be undone. All gig data will be erased.</p>
+        <div class="modal-footer-btns">
+            <button class="m-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <button class="m-btn-delete" id="confirmDeleteBtn">Confirm Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/sellerDashboard.js"></script>
+<script src="../js/gigManage.js"></script>
+<script src="../js/seller-orders.js"></script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly | Admin - Gig Details</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/gig-details.css">
+    <link rel="stylesheet" href="../css/viewGig.css">
+</head>
+
+<body>
+
+    <div class="animated-background"></div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            <div class="modal-header">
+                <h2>Delete Gig</h2>
+                <p>Are you sure you want to permanently delete this gig?</p>
+            </div>
+            <div class="modal-body">
+                <p style="color: #f87171;">
+                    <i class="fas fa-exclamation-triangle"></i> This action cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-confirm-delete" onclick="confirmDelete()">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="nav-left">
+                <button class="btn-back" onclick="goBack()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <a href="admin-dashboard.html" class="brand-logo">Task<span>ly</span></a>
+            </div>
+            <div class="admin-avatar">A</div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <main>
+            <!-- LEFT CONTENT -->
+            <div class="content-left">
+                
+                <!-- Report Banner -->
+               
+
+                <h1 id="title" class="title-hero">Elite Branding & Identity System</h1>
+
+                <div class="gig-rating-container" id="gig-rating-container"></div>
+
+                <div class="seller-card glass-card">
+                    <img id="avatar" class="avatar" src="https://i.pravatar.cc/100?u=aura_vector" alt="Seller">
+                    <div class="seller-info">
+                        <h4>
+                            <span id="seller">Vector Aura</span>
+                            <span id="levelBadge" class="level-badge">Expert</span>
+                        </h4>
+                    </div>
+                </div>
+
+                <div class="gallery-container">
+                    <div class="main-image-wrapper">
+                        <img id="mainImage" src="" alt="Main Preview">
+                    </div>
+                    <div class="thumbnails-grid" id="thumbnails"></div>
+                </div>
+
+                <div class="overview-card glass-card">
+                    <h2 class="section-title">Description</h2>
+                    <div id="desc" class="description-text"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT CONTENT -->
+            <div class="content-right">
+                <div class="package-card glass-card">
+                    <div class="tabs-header">
+                        <div onclick="switchTab('basic')" id="tab-basic" class="package-tab active">BASIC</div>
+                        <div onclick="switchTab('standard')" id="tab-standard" class="package-tab">STANDARD</div>
+                        <div onclick="switchTab('premium')" id="tab-premium" class="package-tab">PREMIUM</div>
+                    </div>
+
+                    <div class="package-body">
+                        <div class="price-row">
+                            <h3 id="pkgName" class="pkg-name">Startup Foundation</h3>
+                            <span id="pkgPrice" class="pkg-price">$150</span>
+                        </div>
+                        <p id="pkgDesc" class="pkg-desc"></p>
+                        <div id="features" class="features-list"></div>
+                        <div class="meta-row">
+                            <span id="delivery"><i class="far fa-clock"></i> 3 Days Delivery</span>
+                            <span id="revisions"><i class="fas fa-sync"></i> 2 Revisions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/viewGig.js"></script>
+</body>
+
+</html>

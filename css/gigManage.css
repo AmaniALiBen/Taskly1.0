@@ -1,0 +1,175 @@
+/* Layout & Spacing */
+.manage-container { padding: 10px; max-width: 1400px; margin: 0 auto; }
+
+/* صورة الهيدر الدائرية */
+.nav-avatar-circle {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--primary-color);
+    background: url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100') center/cover;
+}
+
+/* العنوان وزر الإضافة */
+.page-header-box { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 35px; }
+.page-title { font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.page-title span { color: var(--primary-color); }
+.page-subtitle { color: #666; font-size: 0.8rem; }
+
+.btn-add-minimal {
+    background: var(--primary-color); color: #fff;
+    padding: 8px 16px; border-radius: 8px; text-decoration: none;
+    font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    transition: 0.3s;
+}
+.btn-add-minimal:hover { transform: translateY(-2px); opacity: 0.9; }
+
+/* كروت الإحصائيات المصغرة (Slim Style) */
+.mini-stats-grid { display: flex; gap: 15px; margin-bottom: 40px; }
+.stat-card-slim {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    padding: 10px 20px; border-radius: 12px;
+    display: flex; align-items: center; gap: 12px; min-width: 140px;
+}
+.s-icon { font-size: 1.1rem; color: var(--primary-color); opacity: 0.7; }
+.s-label { font-size: 0.6rem; color: #555; text-transform: uppercase; font-weight: 800; display: block; }
+.s-value { font-size: 1.2rem; font-weight: 800; color: #fff; line-height: 1; }
+
+/* التبويب */
+.filter-tabs-row { display: flex; gap: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 35px; }
+.tab-link { background: none; border: none; color: #444; font-weight: 700; padding: 10px 0; cursor: pointer; position: relative; transition: 0.3s; }
+.tab-link.active { color: #fff; }
+.tab-link.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--primary-color); }
+
+/* شبكة العروض (Portrait/Fakhama Style) */
+.gigs-portrait-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* عرض أقل */
+    gap: 30px; 
+}
+
+.gig-portrait-card { 
+    background: rgba(255, 255, 255, 0.02); 
+    border: 1px solid var(--glass-border);
+    border-radius: 14px; overflow: hidden; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.gig-portrait-card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.15); }
+
+.card-top-img { width: 100%; height: 200px; background-size: cover; background-position: center; } /* ارتفاع أكبر */
+
+.card-main-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+.card-main-body h3 { font-size: 0.9rem; color: #eee; line-height: 1.5; font-weight: 600; height: 3em; overflow: hidden; }
+
+/* النجوم والتقييم */
+.rating-info-line { display: flex; align-items: center; gap: 6px; }
+.rating-info-line i { color: #ffb33e; font-size: 0.8rem; }
+.r-num { color: #fff; font-weight: 700; font-size: 0.85rem; }
+.r-total { color: #555; font-size: 0.8rem; }
+
+.card-action-footer { 
+    display: flex; justify-content: space-between; align-items: center; 
+    border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 5px;
+}
+.price-display { color: #fff; font-weight: 800; font-size: 1.1rem; }
+.price-display span { color: #555; font-size: 0.6rem; display: block; text-transform: uppercase; margin-bottom: 2px; }
+
+/* أزرار التحكم */
+.ctrl-btns-group { display: flex; gap: 6px; }
+.control-btn { 
+    width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer;
+    background: rgba(255,255,255,0.05); color: #777; transition: 0.2s;
+}
+.control-btn:hover { background: var(--primary-color); color: #fff; }
+/* زر الحذف داخل الكرت عند التمرير - أحمر توتي داكن وفخم */
+
+
+/* نافذة الحذف - الخلفية ضبابية داكنة جداً */
+.modal-overlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(5, 5, 10, 0.95); /* سواد كربوني */
+    backdrop-filter: blur(12px); 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 2000; 
+}
+
+.modal-overlay.show { display: flex; }
+
+/* جسم النافذة - داكن مع حدود متوهجة ببطء */
+.modal-box { 
+    background: #0f0f15; /* أغمق درجة من ألوان الموقع */
+    border: 1px solid rgba(124, 58, 237, 0.2); /* حدود بنفسجية خفيفة جداً */
+    padding: 40px; 
+    border-radius: 24px; 
+    text-align: center; 
+    max-width: 380px; 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* أيقونة التحذير - لون أرجواني مضيء ليعطي هيبة */
+.modal-icon { 
+    font-size: 3rem; 
+    color:var(--primary-color); /* لون موقعك الأساسي */
+    margin-bottom: 20px; 
+    filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.3));
+}
+
+.modal-box h3 {
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.modal-box p {
+    color: #888;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* الأزرار - تنسيق فخم ومتناسق */
+.modal-footer-btns { 
+    display: flex; 
+    gap: 15px; 
+    margin-top: 30px; 
+}
+
+/* زر التراجع - شفاف بإطار */
+.m-btn-cancel { 
+    flex: 1; 
+    padding: 12px; 
+    background: rgba(255, 255, 255, 0.05); 
+    color: #eee; 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    font-size: 0.85rem;
+    transition: 0.3s;
+}
+.m-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* زر التأكيد - أرجواني محمر (يوحي بالتحذير دون قبح) */
+.m-btn-delete { 
+    flex: 1; 
+    padding: 12px; 
+    background: var(--primary-color);; /* دمج لون الموقع مع لون التحذير */
+    color: #fff; 
+    border: none; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    font-size: 0.85rem;
+    transition: 0.3s;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+}
+
+.m-btn-delete:hover { 
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px var(--primary-color);;
+    filter: brightness(1.1);
+}

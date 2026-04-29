@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management | Taskly Freelancer Workspace</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/freelancerOrderTracking.css">
+</head>
+
+<body>
+
+    <div class="animated-background"></div>
+
+    <div id="toast-container"></div>
+
+    <!-- Cancel Request Modal -->
+    <div id="cancelModal" class="cancel-modal-overlay">
+        <div class="cancel-modal-card">
+            <button class="cancel-modal-close" onclick="closeCancelModal()">&times;</button>
+            <div class="cancel-modal-header">
+                <div class="cancel-icon">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <h2>Request <span style="color: var(--error);">Cancellation</span></h2>
+                <p>Please provide reason for cancellation request</p>
+            </div>
+            <div class="cancel-form">
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="cancel-reason" value="buyer-unresponsive">
+                        <span class="custom-radio"></span>
+                        <span>Buyer is unresponsive</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="cancel-reason" value="requirements-unclear">
+                        <span class="custom-radio"></span>
+                        <span>Requirements are unclear or changed</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="cancel-reason" value="time-constraints">
+                        <span class="custom-radio"></span>
+                        <span>Unable to meet deadline</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="cancel-reason" value="technical-issues">
+                        <span class="custom-radio"></span>
+                        <span>Technical issues / Unable to complete</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="cancel-reason" value="other">
+                        <span class="custom-radio"></span>
+                        <span>Other</span>
+                    </label>
+                </div>
+                <textarea id="cancel-reason-detail" class="cancel-textarea"
+                    placeholder="Please provide additional details about why you need to cancel this order..."></textarea>
+            </div>
+            <div class="cancel-modal-footer">
+                <button class="cancel-btn-cancel" onclick="closeCancelModal()">Cancel</button>
+                <button class="cancel-btn-submit" onclick="submitCancelRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center;">
+                <button class="btn-back" onclick="history.back()" title="Go Back">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <a href="#" class="brand-logo">Task<span>ly</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="glass-card">
+            <div class="card-header">
+                <div
+                    style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 10px;">
+                    Order Management / #882-991
+                </div>
+                <h1 style="font-size: 24px; font-weight: 800;">UI/UX Design for Mobile Application</h1>
+            </div>
+
+            <nav class="tabs-nav">
+                <button class="tab-btn active" id="btn-requirements"
+                    onclick="switchTab('requirements')">Requirements</button>
+                <button class="tab-btn" id="btn-messages" onclick="switchTab('messages')">Messages</button>
+                <button class="tab-btn" id="btn-deliveries" onclick="switchTab('deliveries')">Deliveries</button>
+            </nav>
+
+            <div class="content-area">
+                <!-- Requirements Tab -->
+                <div id="pane-requirements" class="tab-panel active">
+                    <div class="requirements-view">
+                        <h4><i class="fas fa-file-alt"></i> Project Brief</h4>
+                        <div class="requirements-text" id="requirements-text">
+                            Complete UI/UX design for a mobile fitness application. Need high-fidelity screens for:
+                            - Onboarding screens
+                            - User profile setup
+                            - Dashboard with workout tracking
+                            - Exercise library
+                            - Progress analytics
+                            - Settings page
+
+                            Please deliver in Figma format with interactive prototypes. Modern, minimalist design with
+                            dark theme preferred.
+                        </div>
+
+                        <h4 style="margin-top: 20px;"><i class="fas fa-paperclip"></i> Attached Files (Click to
+                            download)</h4>
+                        <div class="downloadable-files" id="attached-files">
+                            <div class="download-item" onclick="downloadRequirementFile('design_brief.pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>design_brief.pdf</span>
+                                <i class="fas fa-download download-icon"></i>
+                            </div>
+                            <div class="download-item" onclick="downloadRequirementFile('references.zip')">
+                                <i class="fas fa-file-archive"></i>
+                                <span>references.zip</span>
+                                <i class="fas fa-download download-icon"></i>
+                            </div>
+                            <div class="download-item" onclick="downloadRequirementFile('requirements.docx')">
+                                <i class="fas fa-file-word"></i>
+                                <span>requirements.docx</span>
+                                <i class="fas fa-download download-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Pane -->
+                <div id="pane-messages" class="tab-panel">
+                    <div id="chat-box">
+                        <div class="msg msg-buyer">
+                            <div class="msg-meta">Sarah Johnson (Buyer) • Yesterday</div>
+                            Hi! I'm excited to work with you on this project. Please let me know if you have any
+                            questions about the requirements.
+                        </div>
+                        <div class="msg msg-me">
+                            <div class="msg-meta">You • Yesterday</div>
+                            Thanks for the detailed brief! I'll review everything and start working on the designs. I'll
+                            keep you updated on the progress.
+                        </div>
+                        <div class="msg msg-buyer">
+                            <div class="msg-meta">Sarah Johnson (Buyer) • Just now</div>
+                            Great! Looking forward to seeing your work.
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <input type="text" id="chat-input" placeholder="Type your message..."
+                            style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; color: white; outline: none;"
+                            onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button class="button-primary" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+
+                <!-- Deliveries Pane -->
+                <div id="pane-deliveries" class="tab-panel">
+                    <div id="delivery-container">
+                        <h3 style="margin-bottom: 20px;">Upload New Delivery</h3>
+
+                        <div class="delivery-upload-zone"
+                            onclick="document.getElementById('delivery-file-input').click()">
+                            <i class="fas fa-cloud-upload-alt"
+                                style="font-size: 2rem; color: var(--primary-color); margin-bottom: 10px;"></i>
+                            <p style="font-weight: 600;">Click to upload delivery files</p>
+                            <p style="font-size: 12px; color: var(--text-secondary);">ZIP, PDF, FIG, PSD, AI, JPG, PNG
+                            </p>
+                            <input type="file" id="delivery-file-input" class="hidden" multiple
+                                onchange="handleDeliveryFiles(event)">
+                        </div>
+
+                        <div id="delivery-files-list" class="delivery-files-list"></div>
+
+                        <div style="text-align: right; margin-top: 20px;">
+                            <button class="button-primary" id="submit-delivery-btn" onclick="submitDelivery()">Submit
+                                Delivery</button>
+                        </div>
+
+                        <h3 style="margin-top: 40px; margin-bottom: 20px;">Delivery History</h3>
+                        <div id="delivery-history">
+                            <div class="delivery-item" id="delivery-item-1">
+                                <div class="delivery-header">
+                                    <span class="delivery-tag tag-delivered">Delivered</span>
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Dec 15, 2024</span>
+                                </div>
+                                <h4 style="margin-bottom: 8px;">Version 1 - Initial Design</h4>
+                                <div class="delivery-files">
+                                    <span class="delivery-file"><i class="fas fa-file"></i> design_v1.fig</span>
+                                    <span class="delivery-file"><i class="fas fa-file-image"></i> preview.jpg</span>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <span class="delivery-tag tag-pending" id="delivery-status-1">Pending Review</span>
+                                    <button class="button-outline"
+                                        style="margin-left: 10px; padding: 4px 12px; font-size: 11px;"
+                                        onclick="simulateRevisionRequest()">Simulate Revision</button>
+                                    <button class="button-primary"
+                                        style="margin-left: 5px; padding: 4px 12px; font-size: 11px;"
+                                        onclick="simulateAcceptance()">Simulate Accept</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="glass-card order-summary-box">
+                <div class="summary-content">
+                    <div class="buyer-info">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" class="buyer-avatar">
+                        <div>
+                            <div class="buyer-name">Sarah Johnson</div>
+                        </div>
+                    </div>
+
+                    <div class="order-details-list">
+                        <div class="detail-row">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value" id="status-val" style="color: var(--warning);">In Progress</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Budget</span>
+                            <span class="detail-value" style="color: var(--primary-color);">$450.00</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Deadline</span>
+                            <span class="detail-value">Dec 25, 2024</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revisions Left</span>
+                            <span class="detail-value" id="revisions-left">3</span>
+                        </div>
+                    </div>
+
+                    <!-- Cancel Request Button -->
+                    <div style="text-align: right; margin-top: 15px;">
+                        <button class="cancel-request-btn" id="cancel-request-btn" onclick="openCancelModal()">
+                            <i class="fas fa-ban"></i> Request Cancellation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="../js/freelancerOrderTracking.js"></script>
+</body>
+
+</html>

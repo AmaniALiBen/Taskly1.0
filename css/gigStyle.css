@@ -1,0 +1,82 @@
+        .gigs-main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .gig-card {
+            background: var(--glass-card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.75rem;
+            overflow: hidden;
+            transition: 0.4s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gig-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary-hover);
+        }
+
+        .gig-image-container {
+            height: 180px;
+            overflow: hidden;
+        }
+
+        .gig-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gig-body-content {
+            padding: 22px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fixed: Category naming and removed inline style */
+        .gig-category-badge {
+            font-size: 0.6rem;
+            color: var(--primary-color);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .gig-title-text {
+            font-size: 1rem;
+            font-weight: 800;
+            margin: 10px 0 15px 0;
+            height: 2.8rem;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .gig-footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 15px;
+            margin-top: auto;
+        }
+
+        .rating-display {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--rating-gold);
+        }
+
+        .price-value-text {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: #fff;
+        }

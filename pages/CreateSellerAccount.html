@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Join Taskly | Become a Seller</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/CreateSellerAccount.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  </head>
+  <body>
+    <div class="animated-background"></div>
+
+    <nav class="navbar">
+      <div class="container nav-content">
+        <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+        
+            </div> 
+      </div>
+    </nav>
+
+    <div class="registration-container">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>Create <span>Seller</span> Account</h2>
+          <p>Start your professional journey on Taskly</p>
+        </div>
+
+        <form id="sellerForm" class="seller-form">
+          <div class="profile-upload-section">
+            <div
+              class="image-preview"
+              id="imagePreview"
+              onclick="document.getElementById('profilePic').click()"
+            >
+              <span id="plus-icon">+</span>
+            </div>
+            <p class="upload-text">Upload Professional Photo</p>
+            <input type="file" id="profilePic" accept="image/*" hidden />
+          </div>
+
+          <div class="input-grid">
+            <div class="input-group">
+              <label>Full Name</label>
+              <input
+                type="text"
+                placeholder="Ahmed Ali"
+                class="custom-input"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                placeholder="name@example.com"
+                class="custom-input"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="input-grid">
+            <div class="input-group">
+              <label>Password</label>
+              <input
+                type="password"
+                id="password"
+                placeholder="••••••••"
+                class="custom-input"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                placeholder="••••••••"
+                class="custom-input"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="input-grid">
+            <div class="input-group">
+              <label>Country</label>
+              <div class="select-wrapper">
+                <select class="custom-select" required>
+                  <option value="" disabled selected>Select Country</option>
+                  <option>Libya</option>
+                  <option>Egypt</option>
+                  <option>Saudi Arabia</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Languages</label>
+              <div class="select-wrapper">
+                <select id="languageSelect" class="custom-select">
+                  <option value="" disabled selected>Add language</option>
+                  <option>Arabic</option>
+                  <option>English</option>
+                </select>
+              </div>
+              <div id="languagesContainer" class="selected-languages"></div>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Professional Experience</label>
+            <textarea
+              rows="3"
+              class="custom-input"
+              placeholder="Summarize your work history..."
+            ></textarea>
+          </div>
+
+          <div class="input-group">
+            <label>About Me</label>
+            <textarea
+              rows="4"
+              class="custom-input"
+              placeholder="Tell us more about yourself..."
+            ></textarea>
+          </div>
+   <div class="terms-viewer">
+                    <label>PLATFORM POLICIES</label>
+                    <div class="terms-content">
+                        <p><strong>1. Service Fees:</strong> Clients agree to the listed service fees and payment terms...</p>
+                        <p><strong>2. Quality Standards:</strong> We maintain a high bar for all digital deliverables...</p>
+                        <p><strong>3. Intellectual Property:</strong> Ownership of work is transferred upon final payment...</p>
+                        <p><strong>4. Confidentiality:</strong> All project data is encrypted and strictly private...</p>
+                    </div>
+                    <div class="terms-check">
+                        <input type="checkbox" id="termsCheck" required>
+                        <label for="termsCheck">I agree to the terms and conditions</label>
+                    </div>
+                </div>
+          <button type="submit" class="button-primary submit-btn">
+            Create My Account
+          </button>
+
+          <div class="form-footer-wrapper">
+            <p class="form-footer">
+              Already have an account?
+              <a href="login.html" class="login-link">Login</a>
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="../js/CreateSellerAccount.js"></script>
+  </body>
+</html>

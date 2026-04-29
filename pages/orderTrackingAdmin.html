@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly Admin | Order Details - Dispute Review</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/orderTrackingAdmin.css">
+</head>
+<body>
+
+<div class="animated-background"></div>
+
+<nav class="navbar">
+    <div class="nav-content">
+        <div style="display: flex; align-items: center;">
+            <!-- زر العودة - يذهب إلى صفحة النزاعات -->
+            <button class="btn-back" onclick="goBackToDisputes()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <a href="index.html" class="brand-logo">Task<span>ly</span></a>
+        </div>
+    </div>
+</nav>
+
+<div class="admin-main-container">
+    <div class="container">
+        <!-- LEFT COLUMN -->
+        <div class="left-column">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px;">
+                        Order Details / #ORD-882 · Dispute #DSP-1001
+                    </div>
+                    <h1 style="font-size: 1.3rem; font-weight: 800;">UI/UX Design for Mobile Application</h1>
+                </div>
+
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="requirements">Requirements</button>
+                    <button class="tab-btn" data-tab="messages">Messages</button>
+                    <button class="tab-btn" data-tab="deliveries">Deliveries</button>
+                </div>
+
+                <div class="tab-content-container">
+                    <!-- Requirements Tab -->
+                    <div id="tab-requirements" class="tab-panel active">
+                        <div class="requirements-view">
+                            <h4><i class="fas fa-file-alt"></i> Project Brief</h4>
+                            <div class="requirements-text">
+                                Complete UI/UX design for a mobile fitness application. Need high-fidelity screens for:
+                                - Onboarding screens
+                                - User profile setup
+                                - Dashboard with workout tracking
+                                - Exercise library
+                                - Progress analytics
+                                - Settings page
+                                <br><br>
+                                Please deliver in Figma format with interactive prototypes. Modern, minimalist design with dark theme preferred. Deadline was April 25, 2025.
+                            </div>
+
+                            <h4><i class="fas fa-paperclip"></i> Attached Files</h4>
+                            <div class="downloadable-files">
+                                <div class="download-item" onclick="downloadFile('design_brief.pdf', '245 KB')">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>design_brief.pdf</span>
+                                    <span class="file-size">245 KB</span>
+                                </div>
+                                <div class="download-item" onclick="downloadFile('references.zip', '12.3 MB')">
+                                    <i class="fas fa-file-archive"></i>
+                                    <span>references.zip</span>
+                                    <span class="file-size">12.3 MB</span>
+                                </div>
+                                <div class="download-item" onclick="downloadFile('wireframes.fig', '4.2 MB')">
+                                    <i class="fas fa-file"></i>
+                                    <span>wireframes.fig</span>
+                                    <span class="file-size">4.2 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Tab -->
+                    <div id="tab-messages" class="tab-panel">
+                        <div class="chat-box">
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 15, 2025</div>
+                                Hi! I'm excited to work with you on this project. Please let me know if you have any questions about the requirements.
+                            </div>
+                            <div class="msg msg-seller">
+                                <div class="msg-meta">Alex Rivera (Seller) • Apr 15, 2025</div>
+                                Thanks for the detailed brief! I'll review everything and start working on the designs. I should have something ready by April 22.
+                            </div>
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 16, 2025</div>
+                                Great! Looking forward to seeing your work. Just to confirm, the deadline is April 25th. Please keep me updated.
+                            </div>
+                            <div class="msg msg-seller">
+                                <div class="msg-meta">Alex Rivera (Seller) • Apr 18, 2025</div>
+                                Here's a quick preview of the onboarding screens. Let me know your thoughts!
+                            </div>
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 19, 2025</div>
+                                The onboarding screens look decent. Can we add an illustration on the last slide? Also, please ensure all screens follow the dark theme consistently.
+                            </div>
+                            <div class="msg msg-seller">
+                                <div class="msg-meta">Alex Rivera (Seller) • Apr 20, 2025</div>
+                                Absolutely! I'll add that and send the updated version before the deadline.
+                            </div>
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 26, 2025</div>
+                                It's April 26th and I haven't received the final files. The deadline was yesterday. When can I expect the delivery?
+                            </div>
+                            <div class="msg msg-seller">
+                                <div class="msg-meta">Alex Rivera (Seller) • Apr 27, 2025</div>
+                                I apologize for the delay. I've been dealing with some technical issues. I'll have everything ready by tomorrow.
+                            </div>
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 28, 2025</div>
+                                Still nothing delivered. This is unacceptable. I'm opening a dispute. The quality also doesn't match what was promised in your gig.
+                            </div>
+                            <div class="msg msg-seller">
+                                <div class="msg-meta">Alex Rivera (Seller) • Apr 29, 2025</div>
+                                I understand your frustration. I've completed the work. Here is the final design. Please review and let me know.
+                            </div>
+                            <div class="msg msg-buyer">
+                                <div class="msg-meta">Sarah Johnson (Buyer) • Apr 29, 2025</div>
+                                This is not what I asked for. The colors are wrong, the prototype doesn't work, and several screens are missing. I want a refund.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deliveries Tab -->
+                    <div id="tab-deliveries" class="tab-panel">
+                        <div class="delivery-item">
+                            <div class="delivery-header">
+                                <span class="delivery-tag tag-delivered">Delivered (Late)</span>
+                                <span style="font-size: 11px; color: #94a3b8;">Apr 29, 2025 - 2:34 PM</span>
+                            </div>
+                            <h4 style="font-size: 0.85rem; margin-bottom: 10px;">Final Delivery - Buyer Disputed</h4>
+                            <div class="delivery-files">
+                                <div class="delivery-file-item" onclick="downloadFile('final_design.fig', '10.1 MB')">
+                                    <i class="fas fa-file"></i>
+                                    <span class="file-name">final_design.fig</span>
+                                    <span class="file-size">10.1 MB</span>
+                                </div>
+                                <div class="delivery-file-item" onclick="downloadFile('prototype_preview.mp4', '15.2 MB')">
+                                    <i class="fas fa-video"></i>
+                                    <span class="file-name">prototype_preview.mp4</span>
+                                    <span class="file-size">15.2 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="right-column">
+            <div class="sidebar-card">
+                <div class="sidebar-content">
+                    <!-- Buyer Info -->
+                    <div class="buyer-info">
+                        <img src="https://i.pravatar.cc/100?u=buyer_sarah" class="avatar">
+                        <div>
+                            <div class="name">Sarah Johnson</div>
+                            <div class="role-badge"><i class="fas fa-user"></i> Buyer · Opened Dispute</div>
+                        </div>
+                    </div>
+
+                    <!-- Seller Info - Clickable -->
+                    <div class="seller-info" onclick="goToSellerProfile()">
+                        <img src="https://i.pravatar.cc/100?u=seller_alex" class="avatar">
+                        <div>
+                            <div class="name">Alex Rivera</div>
+                            <div class="role-badge"><i class="fas fa-briefcase"></i> Seller · Top Rated</div>
+                        </div>
+                    </div>
+
+                    <div class="package-details">
+                        <div class="package-title">
+                            <i class="fas fa-crown"></i> Selected Package
+                        </div>
+                        <div class="package-price">$450.00</div>
+                        <div style="font-size: 0.7rem; color: #a78bfa; margin-bottom: 8px;">Premium Package</div>
+                        <div class="package-features">
+                            <span class="feature-tag">15+ Custom Screens</span>
+                            <span class="feature-tag">Interactive Prototype</span>
+                            <span class="feature-tag">Source Files (Figma)</span>
+                            <span class="feature-tag">5 Revisions</span>
+                            <span class="feature-tag">10 Days Delivery</span>
+                            <span class="feature-tag">Dark/Light Theme</span>
+                        </div>
+                    </div>
+
+                    <div class="order-details-list">
+                        <div class="detail-row">
+                            <span class="detail-label">Order Status</span>
+                            <span class="detail-value"><span class="status-badge status-in-progress">In Progress · Disputed</span></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Dispute ID</span>
+                            <span class="detail-value" style="color: #f59e0b;">#DSP-1001</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Dispute Reason</span>
+                            <span class="detail-value">Late delivery</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Order Date</span>
+                            <span class="detail-value">Apr 15, 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Deadline</span>
+                            <span class="detail-value" style="color: #ef4444;">Apr 25, 2025 (Missed)</span>
+                        </div>
+                    </div>
+
+                    <!-- Complaint Details Box -->
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.08); border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <div style="font-size: 0.7rem; color: #f87171; margin-bottom: 8px;">
+                            <i class="fas fa-exclamation-triangle"></i> Complaint Details
+                        </div>
+                        <div style="font-size: 0.75rem; color: #e2e8f0; line-height: 1.5;">
+                            "The seller missed the deadline by 4 days. The delivered work is incomplete - missing several screens, colors don't match the brief, and the prototype doesn't work. Requesting full refund."
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="../js/orderTrackingAdmin.js"></script>
+</body>
+</html>
