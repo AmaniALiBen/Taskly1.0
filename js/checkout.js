@@ -12,13 +12,65 @@ let isProcessing = false;
 // AUTHENTICATION - Load user data
 // ============================================
 let currentUser = null;
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    // صورة افتراضية تعتمد على اسم المستخدم
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
 
+// ============================================
+// FETCH USER DATA FROM DATABASE
+// ============================================
+async function fetchUserData() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            currentUser = {
+                name: data.username,
+                email: data.email,
+                role: data.role,
+                avatar: data.avatar
+            };
+            updateUserAvatar();
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+    }
+}
+// ============================================
+// AUTHENTICATION - Load user data
+// ============================================
 function loadUserData() {
+    // First try from localStorage (backup)
     const userData = localStorage.getItem('userData');
     if (userData) {
         currentUser = JSON.parse(userData);
         updateUserAvatar();
     }
+    // Then fetch from database (will override)
+    fetchUserData();
+    fetchUserAvatar();
 }
 
 function updateUserAvatar() {
@@ -480,6 +532,7 @@ function loadSavedData() {
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    fetchUserAvatar();
     console.log('Checkout page loaded');
     loadUserData();
     loadOrderFromStorage();

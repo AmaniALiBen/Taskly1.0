@@ -50,16 +50,81 @@ const gig = {
 let currentTab = "basic";
 let toastTimeout;
 let currentUser = null;
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    // صورة افتراضية تعتمد على اسم المستخدم
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
 
+// ============================================
+// FETCH USER DATA FROM DATABASE (full)
+// ============================================
+async function fetchUserData() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            currentUser = {
+                name: data.username,
+                email: data.email,
+                role: data.role,
+                avatar: data.avatar
+            };
+            updateUserAvatar();
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+    }
+}
+
+// ============================================
+// UPDATE USER AVATAR (modified)
+// ============================================
+function updateUserAvatar() {
+    const userAvatarImg = document.getElementById('user-avatar-img');
+    if (userAvatarImg && currentUser && currentUser.avatar) {
+        if (currentUser.avatar !== '' && currentUser.avatar !== 'null') {
+            userAvatarImg.src = currentUser.avatar;
+        } else {
+            userAvatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=7c3aed&color=fff&size=100`;
+        }
+    }
+}
+// ============================================
+// AUTHENTICATION - Load user data
+// ============================================
 // ============================================
 // AUTHENTICATION - Load user data
 // ============================================
 function loadUserData() {
+    // First try to get from localStorage (for backward compatibility)
     const userData = localStorage.getItem('userData');
     if (userData) {
         currentUser = JSON.parse(userData);
         updateUserAvatar();
     }
+    // Then fetch from database (will override)
+    fetchUserData();
 }
 
 function updateUserAvatar() {
@@ -260,5 +325,6 @@ document.addEventListener('keydown', (e) => {
 
 window.onload = () => {
     loadUserData();
+    fetchUserAvatar(); 
     load();
 };

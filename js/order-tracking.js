@@ -407,3 +407,31 @@ function loadUserAvatar() {
 window.onload = function() {
     loadUserAvatar();
 };
+
+// ============================================
+// FETCH USER AVATAR FROM SESSION
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    avatarImg.src = 'https://i.pravatar.cc/100?u=' + data.user_id;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
+
+// استدعاء الدالة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    fetchUserAvatar();
+});

@@ -14,7 +14,44 @@ let currentPriceFilter = null;
 let currentLevelFilter = null;
 let currentTimeFilter = null;
 let searchTerm = "";
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    // صورة افتراضية تعتمد على اسم المستخدم
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
 
+// ============================================
+// GO TO ORDERS PAGE
+// ============================================
+function goToOrders() {
+    window.location.href = 'orders.html';
+}
+
+// ============================================
+// GO TO PROFILE PAGE
+// ============================================
+function goToProfile() {
+    window.location.href = 'profile.html';
+}
 // Available sub-categories
 const subCategories = ["All Services", "UX/UI Design", "Architecture", "NFT Art", "Marketing"];
 
@@ -230,11 +267,13 @@ function goBack() {
 }
 
 // Initialize on load
+// Initialize on load
 window.onload = () => {
     renderSubNav();
     renderFilteredGigs();
     setupCustomSelects();
     setupSearch();
+    fetchUserAvatar();  // ← أضف هذا السطر لجلب الصورة
     
     // Back button
     const backBtn = document.querySelector('.btn-back');

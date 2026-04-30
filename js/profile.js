@@ -450,3 +450,111 @@ document.addEventListener('keydown', function(event) {
         closePinModal();
     }
 });
+// ============================================
+// FETCH USER DATA FROM SESSION (DATABASE)
+// ============================================
+async function fetchUserData() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        console.log('User data from server:', data);
+        
+        if (data.loggedIn) {
+            // تحديث الاسم
+            const usernameInput = document.getElementById('username-input');
+            const displayName = document.getElementById('display-name');
+            const emailInput = document.querySelector('#personal-info input[type="email"]');
+            const roleElement = document.querySelector('.sidebar-header p');
+            
+            if (usernameInput) usernameInput.value = data.username;
+            if (displayName) displayName.innerText = data.username;
+            if (emailInput) emailInput.value = data.email;
+            
+            // تحديث الدور
+            if (roleElement) {
+                if (data.role === 'admin') roleElement.innerText = 'Admin Account';
+                else if (data.role === 'freelancer') roleElement.innerText = 'Seller Account';
+                else roleElement.innerText = 'Buyer Account';
+            }
+            
+            // تحديث الصورة الشخصية
+            if (profileImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    profileImg.src = data.avatar;
+                } else if (data.avatar_url) {
+                    profileImg.src = data.avatar_url;
+                } else {
+                    // صورة افتراضية تعتمد على الاسم
+                    profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=150`;
+                }
+            }
+            
+            // تحديث رصيد المحفظة (إذا كان موجوداً في قاعدة البيانات)
+            if (data.balance !== undefined && data.balance !== null) {
+                currentBalance = parseFloat(data.balance);
+                updateBalanceUI();
+                localStorage.setItem('walletBalance', currentBalance);
+            }
+            
+            showToast(`Welcome back, ${data.username}!`, 'success');
+        } else {
+            console.log('User not logged in, redirecting...');
+            // window.location.href = '../index.html';
+        }
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+    }
+}
+
+// ============================================
+// UPDATE PROFILE TO DATABASE
+// ============================================
+async function updateProfileToDatabase() {
+    const newName = document.getElementById('username-input').value;
+    
+    if (!newName.trim()) {
+        showToast('Please enter a valid name', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('../php/update-profile.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                full_name: newName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('display-name').innerText = newName;
+            showToast('Profile updated successfully!', 'success');
+            
+            // تحديث الاسم في localStorage
+            const userData = localStorage.getItem('userData');
+            if (userData) {
+                const user = JSON.parse(userData);
+                user.name = newName;
+                localStorage.setItem('userData', JSON.stringify(user));
+            }
+        } else {
+            showToast(data.message || 'Update failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        showToast('Failed to update profile', 'error');
+    }
+}
+
+// استدعاء الدالة عند تحميل الصفحة (بعد الدوال الأخرى)
+document.addEventListener('DOMContentLoaded', function() {
+    fetchUserData();
+    updatePinStatusUI();
+    setupPinInputRestrictions();
+    updateBalanceUI();
+});

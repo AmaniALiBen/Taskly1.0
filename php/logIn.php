@@ -22,23 +22,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
         
-        // ✅ تنظيف المسار من المشاكل
         $avatar = trim($user['avatar'] ?? '');
-        $avatar = str_replace('\\', '/', $avatar);
+        $avatar = str_replace('//', '', $avatar);
         $avatar = str_replace("\r", '', $avatar);
         $avatar = str_replace("\n", '', $avatar);
+      
+
+
+        $avatar = stripslashes($avatar);
         $_SESSION['avatar'] = $avatar;
         
         if ($remember) {
             setcookie('remember_email', $email, time() + (86400 * 30), '/');
         }
         
-        // فتح صفحة HTML حسب الدور
         if ($user['role'] == 'admin') {
             header("Location: ../pages/admin.html");
         } else if($user['role'] == 'freelancer'){
             header("Location: ../pages/sellerDashboard.html");
-        } else {
+        }else if($user['role'] == 'buyer'){
+            header("Location: ../pages/order-tracking.html");
+        }else
+            {
             header("Location: ../index.html");
         }
         exit();

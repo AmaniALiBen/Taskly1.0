@@ -52,6 +52,20 @@
     background: linear-gradient(90deg, #8b5cf6, #c084fc);
     border-radius: 2px;
 }
+.nav-avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    color: white;
+    background-color: #8b5cf6;
+}
 
 /* ========== MAIN CONTENT ========== */
 .admin-main {

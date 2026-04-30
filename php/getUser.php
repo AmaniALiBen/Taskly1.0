@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 if (isset($_SESSION['user_id'])) {
     $avatar = $_SESSION['avatar'] ?? '';
     $avatar = str_replace('\\', '/', $avatar);
+         $avatar = str_replace("\/", '/', $avatar);
     $avatar = trim($avatar);
     
     echo json_encode([

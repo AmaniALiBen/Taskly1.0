@@ -286,5 +286,38 @@ function init() {
         if (e.key === 'Escape') closeDeleteModal();
     });
 }
+// ============================================
+// FETCH ADMIN AVATAR FROM SESSION
+// ============================================
+async function fetchAdminAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const adminAvatar = document.querySelector('.admin-avatar');
+            
+            if (adminAvatar) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    adminAvatar.style.backgroundImage = `url('${data.avatar}')`;
+                    adminAvatar.style.backgroundSize = 'cover';
+                    adminAvatar.style.backgroundPosition = 'center';
+                    adminAvatar.innerText = '';
+                } else {
+                    adminAvatar.style.backgroundImage = 'none';
+                    adminAvatar.style.backgroundColor = '#8b5cf6';
+                    adminAvatar.innerText = data.username.charAt(0).toUpperCase();
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching admin avatar:', error);
+    }
+}
 
+// استدعاء الدالة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    fetchAdminAvatar();
+    // باقي دوال التهيئة...
+});
 document.addEventListener('DOMContentLoaded', init);

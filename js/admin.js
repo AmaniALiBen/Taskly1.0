@@ -208,19 +208,54 @@ function addAdminOnly() {
     showToast("Admin added successfully", "success");
 }
 
+async function fetchAdminAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        console.log('Data:', data);
+        
+        if (data.loggedIn) {
+            const navAvatar = document.querySelector('.nav-avatar-circle');
+            
+            if (navAvatar) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    navAvatar.style.backgroundImage = `url('${data.avatar}')`;
+                    navAvatar.style.backgroundSize = 'cover';
+                    navAvatar.style.backgroundPosition = 'center';
+                    navAvatar.innerText = '';
+                } else {
+                    navAvatar.style.backgroundImage = 'none';
+                    navAvatar.style.backgroundColor = '#8b5cf6';
+                    navAvatar.style.display = 'flex';
+                    navAvatar.style.alignItems = 'center';
+                    navAvatar.style.justifyContent = 'center';
+                    navAvatar.innerText = data.username.charAt(0).toUpperCase();
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
 // عند تحميل الصفحة، تأكد من أن تبويب Users هو النشط
 document.addEventListener('DOMContentLoaded', () => {
+    // جلب صورة المستخدم
+    fetchAdminAvatar();
+    
     // جعل تبويب Users نشطاً
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
     document.getElementById('users-tab').classList.add('active');
     document.querySelector('.nav-btn:first-child').classList.add('active');
+    
     setTimeout(() => {
         if (categoriesData.length > 0) {
             viewMainCategory(categoriesData[0].id);
         }
     }, 100);
+    
     // عرض المستخدمين
     renderUsers();
     renderMainCategories();

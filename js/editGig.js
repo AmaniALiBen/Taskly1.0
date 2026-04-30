@@ -21,9 +21,41 @@ const dbData = {
         features: ["5 Logo Concepts", "Full Stationery", "Social Media Kit"] 
     }
 };
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('../php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    const firstLetter = data.username ? data.username.charAt(0).toUpperCase() : 'U';
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${firstLetter}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
 
+// ============================================
+// GO TO PROFILE PAGE
+// ============================================
+function goToProfile() {
+    window.location.href = 'profile.html';
+}
 // 2. عند تحميل الصفحة: تعبئة كافة الحقول بالبيانات
 document.addEventListener('DOMContentLoaded', () => {
+        fetchUserAvatar();
+
     // تعبئة العناوين والوصف
     document.getElementById('editTitle').value = dbData.title;
     document.getElementById('editDesc').value = dbData.description;

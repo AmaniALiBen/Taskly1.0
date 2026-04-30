@@ -18,7 +18,60 @@ const gigsList = [
     { id: 5, title: "UI/UX Design for Mobile App", price: 200, category: "Design", freelancer: "Nadia R.", avatar: "https://i.pravatar.cc/100?u=5", image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?w=800", rating: 4.9 },
     { id: 6, title: "Backend API Development", price: 400, category: "Coding", freelancer: "Khaled M.", avatar: "https://i.pravatar.cc/100?u=6", image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800", rating: 4.8 }
 ];
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('php/getUser.php');
+        const data = await response.json();
+        
+        console.log('Avatar data:', data);
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    // صورة افتراضية تعتمد على اسم المستخدم
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
+}
 
+// ============================================
+// UPDATE UI WHEN USER IS LOGGED IN (MODIFIED)
+// ============================================
+function updateUIForLoggedInUser() {
+    const authButtons = document.getElementById('auth-buttons');
+    const userMenu = document.getElementById('user-menu');
+    const userNameSpan = document.getElementById('user-name');
+    const userAvatarImg = document.getElementById('user-avatar-img');
+    const adminLink = document.getElementById('admin-link');
+    
+    if (authButtons) authButtons.classList.add('hidden');
+    if (userMenu) userMenu.classList.remove('hidden');
+    if (userNameSpan && currentUser) {
+        userNameSpan.textContent = currentUser.name;
+    }
+    
+    // جلب الصورة من قاعدة البيانات
+    if (userAvatarImg) {
+        fetchUserAvatar();
+    }
+    
+    if (adminLink && currentUser && currentUser.role === 'admin') {
+        adminLink.style.display = 'inline-block';
+    } else if (adminLink) {
+        adminLink.style.display = 'none';
+    }
+}
 // ============================================
 // AUTHENTICATION STATE
 // ============================================
@@ -48,6 +101,9 @@ function showToast(message, type = 'success') {
 // ============================================
 // FETCH USER DATA FROM SERVER
 // ============================================
+// ============================================
+// FETCH USER DATA FROM SERVER
+// ============================================
 async function fetchUserData() {
     try {
         const response = await fetch('php/getUser.php');
@@ -58,7 +114,8 @@ async function fetchUserData() {
             currentUser = {
                 name: data.username,
                 email: data.email,
-                role: data.role
+                role: data.role,
+                avatar: data.avatar
             };
             updateUIForLoggedInUser();
         } else {
@@ -72,11 +129,10 @@ async function fetchUserData() {
     }
 }
 
-// ============================================
-// CHECK AUTH STATUS
-// ============================================
-function checkAuthStatus() {
-    fetchUserData();
+
+async function checkAuthStatus() {
+    await fetchUserData();
+    await fetchUserAvatar();
 }
 
 // ============================================
