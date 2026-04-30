@@ -238,11 +238,121 @@ async function fetchAdminAvatar() {
         console.error('Error:', error);
     }
 }
+async function fetchCategoriesFromDB() {
+    try {
+        const response = await fetch('../php/get_categories.php');
+        const result = await response.json();
+        
+        if (result.success) {
+            categoriesData = result.data.map(cat => ({
+                id: cat.id,
+                name: cat.name,
+                icon: cat.icon,
+                subcategories: []  // تبسيط
+            }));
+            renderMainCategories();
+        }
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+    }
+}
+
+// إضافة تصنيف جديد
+async function addCategoryToDB(name, icon) {
+    try {
+        const response = await fetch('../php/add_category.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, icon })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            fetchCategoriesFromDB(); // تحديث القائمة
+            showToast('Category added successfully', 'success');
+        } else {
+            showToast(result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to add category', 'error');
+    }
+}
+
+// تعديل تصنيف
+async function updateCategoryInDB(id, name) {
+    console.log('Updating category name:', id, name);
+    
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('name', name);
+    
+    try {
+        const response = await fetch('../php/update_category.php', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            // تحديث الاسم محلياً دون إعادة تحميل كل شيء
+            const category = categoriesData.find(c => c.id === id);
+            if (category) {
+                category.name = name;
+                renderMainCategories();  // إعادة رسم البطاقات مع الاحتفاظ بالأيقونة
+            }
+            showToast('Category updated', 'success');
+        } else {
+            showToast(result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to update', 'error');
+    }
+}
+// حذف تصنيف
+async function deleteCategoryFromDB(id) {
+    try {
+        const response = await fetch('../php/delete_category.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            fetchCategoriesFromDB();
+            showToast('Category deleted', 'success');
+        } else {
+            showToast(result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to delete', 'error');
+    }
+}
+
+//تعديل دالة addMainCategory
+function addMainCategory() {
+    const name = document.getElementById('mainCatName').value.trim();
+    const icon = document.getElementById('mainCatIcon').value.trim();
+    
+    if (!name) return showToast("Category name required", "error");
+    
+    addCategoryToDB(name, icon || 'fa-tag');
+    
+    document.getElementById('mainCatName').value = '';
+    document.getElementById('mainCatIcon').value = '';
+}
+
+// تعديل دالة deleteCategoryWithConfirm
+function deleteCategoryWithConfirm(id, name) {
+    showConfirmModal("Delete Category", `Delete "${name}"?`, () => {
+        deleteCategoryFromDB(id);
+    });
+}
 // عند تحميل الصفحة، تأكد من أن تبويب Users هو النشط
 document.addEventListener('DOMContentLoaded', () => {
     // جلب صورة المستخدم
     fetchAdminAvatar();
-    
+     fetchCategoriesFromDB();
     // جعل تبويب Users نشطاً
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -302,13 +412,13 @@ function makeCategoryEditable(catId, element) {
     element.appendChild(input);
     input.focus();
     
-    input.addEventListener('blur', () => {
+    input.addEventListener('blur', async () => {
         const newName = input.value.trim();
         if (newName && newName !== currentName) {
-            const cat = categoriesData.find(c => c.id === catId);
-            cat.name = newName;
-            renderMainCategories();
-            showToast("Category updated", "success");
+            // تحديث الاسم في قاعدة البيانات فقط (بدون renderMainCategories)
+            await updateCategoryInDB(catId, newName);
+            // تحديث النص في العنصر مباشرة
+            element.innerText = newName;
         } else {
             element.innerText = currentName;
         }
@@ -316,21 +426,22 @@ function makeCategoryEditable(catId, element) {
     
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            input.blur();
+            e.preventDefault();
+            input.blur();  // إزالة الفوكس
         }
     });
 }
 
-function addMainCategory() {
-    const name = document.getElementById('mainCatName').value.trim();
-    const icon = document.getElementById('mainCatIcon').value.trim();
-    if (!name || !icon) return showToast("Fill all fields", "error");
-    categoriesData.push({ id: Date.now(), name, icon: icon.startsWith('fa-') ? icon : `fa-${icon}`, subcategories: [] });
-    document.getElementById('mainCatName').value = '';
-    document.getElementById('mainCatIcon').value = '';
-    renderMainCategories();
-    showToast("Category added", "success");
-}
+// function addMainCategory() {
+//     const name = document.getElementById('mainCatName').value.trim();
+//     const icon = document.getElementById('mainCatIcon').value.trim();
+//     if (!name || !icon) return showToast("Fill all fields", "error");
+//     categoriesData.push({ id: Date.now(), name, icon: icon.startsWith('fa-') ? icon : `fa-${icon}`, subcategories: [] });
+//     document.getElementById('mainCatName').value = '';
+//     document.getElementById('mainCatIcon').value = '';
+//     renderMainCategories();
+//     showToast("Category added", "success");
+// }
 
 function editCategoryWithButton(catId) {
     const cat = categoriesData.find(c => c.id === catId);
@@ -342,13 +453,13 @@ function editCategoryWithButton(catId) {
     }
 }
 
-function deleteCategoryWithConfirm(id, name) {
-    showConfirmModal("Delete Category", `Are you sure you want to delete "${name}"? All subcategories and gigs will be lost.`, () => {
-        categoriesData = categoriesData.filter(c => c.id !== id);
-        renderMainCategories();
-        showToast("Category deleted", "success");
-    });
-}
+// function deleteCategoryWithConfirm(id, name) {
+//     showConfirmModal("Delete Category", `Are you sure you want to delete "${name}"? All subcategories and gigs will be lost.`, () => {
+//         categoriesData = categoriesData.filter(c => c.id !== id);
+//         renderMainCategories();
+//         showToast("Category deleted", "success");
+//     });
+// }
 
 // ========== VIEW MAIN CATEGORY ==========
 function viewMainCategory(catId) {
