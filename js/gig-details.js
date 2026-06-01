@@ -1,71 +1,20 @@
-// ============================================
-// GIG DATA (Will be replaced by API)
-// ============================================
-const gig = {
-    id: 1,
-    title: "Elite Branding & Identity System",
-    seller: "Vector Aura",
-    sellerId: 101,  // Added seller ID for profile link
-    sellerLevel: 3,
-    gigRating: 4.9,
-    gigReviewCount: 247,
-    images: [
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1000",
-        "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1000",
-        "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?w=1000",
-        "https://images.unsplash.com/photo-1572044162444-ad60f128bde2?w=1000"
-    ],
-    desc: [
-        "Looking for a world-class visual identity? I provide top-tier branding systems for tech startups and modern enterprises.",
-        "My process involves deep research, moodboarding, and precision design to ensure your brand stands out."
-    ],
-    packages: {
-        basic: {
-            name: "Startup Foundation",
-            price: 150,
-            desc: "Perfect for early stage startups needing a professional starting point.",
-            delivery: "3 Days Delivery",
-            revisions: "2 Revisions",
-            features: ["Professional Logo", "Color Palette", "High-Res PNG/JPG"]
-        },
-        standard: {
-            name: "Business Growth",
-            price: 350,
-            desc: "A comprehensive branding kit for growing businesses looking to scale.",
-            delivery: "5 Days Delivery",
-            revisions: "5 Revisions",
-            features: ["Everything in Basic", "Source Files (AI)", "Social Media Kit"]
-        },
-        premium: {
-            name: "Enterprise Elite",
-            price: 750,
-            desc: "The ultimate identity solution including motion and full brand guidelines.",
-            delivery: "10 Days Delivery",
-            revisions: "Unlimited",
-            features: ["Everything in Standard", "Brand Guidelines", "Motion Logo"]
-        }
-    }
-};
-
+let gig = null;
 let currentTab = "basic";
 let toastTimeout;
 let currentUser = null;
-// ============================================
-// FETCH USER AVATAR FROM DATABASE
-// ============================================
+
 async function fetchUserAvatar() {
     try {
         const response = await fetch('../php/getUser.php');
         const data = await response.json();
-        
+
         if (data.loggedIn) {
             const avatarImg = document.getElementById('user-avatar-img');
-            
+
             if (avatarImg) {
                 if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
                     avatarImg.src = data.avatar;
                 } else {
-                    // صورة افتراضية تعتمد على اسم المستخدم
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
                 }
             }
@@ -75,14 +24,11 @@ async function fetchUserAvatar() {
     }
 }
 
-// ============================================
-// FETCH USER DATA FROM DATABASE (full)
-// ============================================
 async function fetchUserData() {
     try {
         const response = await fetch('../php/getUser.php');
         const data = await response.json();
-        
+
         if (data.loggedIn) {
             currentUser = {
                 name: data.username,
@@ -97,9 +43,30 @@ async function fetchUserData() {
     }
 }
 
-// ============================================
-// UPDATE USER AVATAR (modified)
-// ============================================
+async function fetchGigDetails() {
+    const gigId = getGigIdFromUrl();
+
+    if (!gigId) {
+        showGigError('Missing gig ID');
+        return;
+    }
+
+    try {
+        const response = await fetch(`../php/get_gig.php?id=${encodeURIComponent(gigId)}`);
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Gig not found');
+        }
+
+        gig = result.data;
+        load();
+    } catch (error) {
+        console.error('Error loading gig:', error);
+        showGigError('Could not load this gig');
+    }
+}
+
 function updateUserAvatar() {
     const userAvatarImg = document.getElementById('user-avatar-img');
     if (userAvatarImg && currentUser && currentUser.avatar) {
@@ -110,33 +77,11 @@ function updateUserAvatar() {
         }
     }
 }
-// ============================================
-// AUTHENTICATION - Load user data
-// ============================================
-// ============================================
-// AUTHENTICATION - Load user data
-// ============================================
+
 function loadUserData() {
-    // First try to get from localStorage (for backward compatibility)
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-        currentUser = JSON.parse(userData);
-        updateUserAvatar();
-    }
-    // Then fetch from database (will override)
     fetchUserData();
 }
 
-function updateUserAvatar() {
-    const userAvatarImg = document.getElementById('user-avatar-img');
-    if (userAvatarImg && currentUser && currentUser.avatar) {
-        userAvatarImg.src = currentUser.avatar;
-    }
-}
-
-// ============================================
-// NAVIGATION FUNCTIONS
-// ============================================
 function goBack() {
     window.history.back();
 }
@@ -149,29 +94,29 @@ function goToProfile() {
     window.location.href = 'profile.html';
 }
 
-// NEW FUNCTION: Go to Seller Profile
 function goToSellerProfile() {
+    if (!gig) return;
     window.location.href = `freelancer-profile.html?id=${gig.sellerId}`;
 }
 
 function goToCheckout() {
+    if (!gig || !gig.packages || !gig.packages[currentTab]) return;
+
     const selectedPackage = gig.packages[currentTab];
-    // Store selected package data in localStorage for checkout page
     const orderData = {
         gigId: gig.id,
+        packageId: selectedPackage.id,
         title: gig.title,
         packageName: selectedPackage.name,
         price: selectedPackage.price,
         seller: gig.seller,
         sellerId: gig.sellerId
     };
+
     localStorage.setItem('checkoutOrder', JSON.stringify(orderData));
     window.location.href = 'checkout.html';
 }
 
-// ============================================
-// TOAST FUNCTION
-// ============================================
 function showToast(message) {
     let toast = document.getElementById('custom-toast');
     if (!toast) {
@@ -181,53 +126,52 @@ function showToast(message) {
         document.body.appendChild(toast);
     }
     if (toastTimeout) clearTimeout(toastTimeout);
-    toast.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 8px; color: #10b981;"></i> ${message}`;
+    toast.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 8px; color: #10b981;"></i> ${escapeHtml(message)}`;
     toast.classList.add('show');
     toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ============================================
-// RATING STARS
-// ============================================
 function getGigRatingStars(rating) {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
+    const safeRating = Number(rating || 0);
+    const fullStars = Math.floor(safeRating);
+    const hasHalfStar = safeRating % 1 >= 0.5;
     let starsHtml = '';
+
     for (let i = 0; i < fullStars; i++) starsHtml += '<i class="fas fa-star"></i>';
     if (hasHalfStar) starsHtml += '<i class="fas fa-star-half-alt"></i>';
+
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
     for (let i = 0; i < emptyStars; i++) starsHtml += '<i class="far fa-star"></i>';
+
     return starsHtml;
 }
 
-// ============================================
-// GALLERY FUNCTIONS
-// ============================================
 function initGallery() {
     const mainImg = document.getElementById("mainImage");
     const thumbContainer = document.getElementById("thumbnails");
-    mainImg.src = gig.images[0];
-    
-    thumbContainer.innerHTML = gig.images.map((img, index) => `
-        <img src="${img}" class="thumbnail ${index === 0 ? 'active' : ''}" onclick="updateGallery(this, '${img}')" alt="Work Sample">
+    const images = Array.isArray(gig.images) && gig.images.length ? gig.images : ['../images/potato.png'];
+
+    mainImg.src = images[0];
+
+    thumbContainer.innerHTML = images.map((img, index) => `
+        <img src="${escapeAttribute(img)}" class="thumbnail ${index === 0 ? 'active' : ''}" onclick="updateGallery(this, '${escapeAttribute(img)}')" alt="Work Sample">
     `).join("");
 }
 
 function updateGallery(el, src) {
     const mainImg = document.getElementById("mainImage");
     mainImg.style.opacity = '0';
-    setTimeout(() => { 
-        mainImg.src = src; 
-        mainImg.style.opacity = '1'; 
+    setTimeout(() => {
+        mainImg.src = src;
+        mainImg.style.opacity = '1';
     }, 200);
     document.querySelectorAll(".thumbnail").forEach(t => t.classList.remove("active"));
     el.classList.add("active");
 }
 
-// ============================================
-// PACKAGE FUNCTIONS
-// ============================================
 function switchTab(t) {
+    if (!gig || !gig.packages || !gig.packages[t]) return;
+
     currentTab = t;
     document.querySelectorAll(".package-tab").forEach(x => x.classList.remove("active"));
     document.getElementById("tab-" + t).classList.add("active");
@@ -236,21 +180,23 @@ function switchTab(t) {
 
 function render(t) {
     const p = gig.packages[t];
+
     document.getElementById("pkgName").innerText = p.name;
-    document.getElementById("pkgPrice").innerText = "$" + p.price;
+    document.getElementById("pkgPrice").innerText = "$" + Number(p.price || 0).toFixed(2);
     document.getElementById("pkgDesc").innerText = p.desc;
-    document.getElementById("delivery").innerHTML = `<i class="far fa-clock"></i> ${p.delivery}`;
-    document.getElementById("revisions").innerHTML = `<i class="fas fa-sync"></i> ${p.revisions}`;
-    document.getElementById("features").innerHTML = p.features.map(f => `<div class="feature-item"><i class="fas fa-check"></i>${f}</div>`).join("");
+    document.getElementById("delivery").innerHTML = `<i class="far fa-clock"></i> ${escapeHtml(p.delivery)}`;
+    document.getElementById("revisions").innerHTML = `<i class="fas fa-sync"></i> ${escapeHtml(p.revisions)}`;
+
+    const features = Array.isArray(p.features) ? p.features : [];
+    document.getElementById("features").innerHTML = features.length
+        ? features.map(f => `<div class="feature-item"><i class="fas fa-check"></i>${escapeHtml(f)}</div>`).join("")
+        : '<div class="feature-item"><i class="fas fa-check"></i>Package details included</div>';
 }
 
 function buy() {
     goToCheckout();
 }
 
-// ============================================
-// REPORT MODAL FUNCTIONS
-// ============================================
 function openReportModal() {
     document.getElementById('reportModal').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -264,67 +210,99 @@ function closeReportModal() {
 
 function submitReport() {
     const selectedIssue = document.querySelector('input[name="report-issue"]:checked');
-    if (!selectedIssue) { 
-        showToast('Please select an issue type'); 
-        return; 
+    if (!selectedIssue) {
+        showToast('Please select an issue type');
+        return;
     }
+
     const issueText = selectedIssue.nextElementSibling.innerText;
     showToast(`Gig reported: ${issueText}`);
     closeReportModal();
 }
 
-// ============================================
-// GET GIG ID FROM URL
-// ============================================
 function getGigIdFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
-    if (id) {
-        // Here you would fetch the gig data from API using the ID
-        console.log(`Loading gig with ID: ${id}`);
-        // For now, using static data
-    }
+    return urlParams.get('id');
 }
 
-// ============================================
-// LOAD PAGE DATA
-// ============================================
 function load() {
-    getGigIdFromUrl();
-    
+    if (!gig) return;
+
     document.getElementById("title").innerText = gig.title;
     document.getElementById("seller").innerText = gig.seller;
-    document.getElementById("avatar").src = "https://i.pravatar.cc/100?u=aura_vector";
-    
+    document.getElementById("avatar").src = gig.avatar || '../images/default-avatar.jpg';
+
     const ratingContainer = document.getElementById("gig-rating-container");
     ratingContainer.innerHTML = `
         <div class="gig-stars">${getGigRatingStars(gig.gigRating)}</div>
-        <span class="gig-rating-value">${gig.gigRating}</span>
-        <span class="gig-review-count">(${gig.gigReviewCount} reviews)</span>
+        <span class="gig-rating-value">${Number(gig.gigRating || 0).toFixed(1)}</span>
+        <span class="gig-review-count">(${Number(gig.gigReviewCount || 0)} reviews)</span>
     `;
-    
-    document.getElementById("desc").innerHTML = gig.desc.map(d => `<p style="margin-bottom:15px;">${d}</p>`).join("");
-    
-    const levelNames = {1: "New Seller", 2: "Professional", 3: "Expert"};
-    document.getElementById("levelBadge").innerText = levelNames[gig.sellerLevel];
-    
+
+    const descriptions = Array.isArray(gig.desc) ? gig.desc : [gig.desc || 'No description available.'];
+    document.getElementById("desc").innerHTML = descriptions.map(d => `<p style="margin-bottom:15px;">${escapeHtml(d)}</p>`).join("");
+
+    const levelNames = { 1: "New Seller", 2: "Professional", 3: "Expert" };
+    document.getElementById("levelBadge").innerText = levelNames[gig.sellerLevel] || "Seller";
+
     initGallery();
-    render(currentTab);
+
+    const availableTabs = ['basic', 'standard', 'premium'].filter(type => gig.packages && gig.packages[type]);
+    if (availableTabs.length === 0) {
+        showGigError('This gig has no packages yet');
+        return;
+    }
+
+    currentTab = availableTabs.includes(currentTab) ? currentTab : availableTabs[0];
+    renderAvailablePackageTabs(availableTabs);
+    switchTab(currentTab);
 }
 
-// ============================================
-// INITIALIZATION
-// ============================================
-window.onclick = (e) => { 
-    if (e.target === document.getElementById('reportModal')) closeReportModal(); 
+function renderAvailablePackageTabs(availableTabs) {
+    ['basic', 'standard', 'premium'].forEach(type => {
+        const tab = document.getElementById(`tab-${type}`);
+        if (tab) {
+            tab.style.display = availableTabs.includes(type) ? '' : 'none';
+        }
+    });
+}
+
+function showGigError(message) {
+    const main = document.querySelector('main');
+    if (!main) return;
+
+    main.innerHTML = `
+        <div class="overview-card glass-card" style="grid-column: 1 / -1; text-align: center;">
+            <h2 class="section-title">${escapeHtml(message)}</h2>
+            <p class="description-text">Please go back and choose another gig.</p>
+        </div>
+    `;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
+}
+
+function escapeAttribute(value) {
+    return escapeHtml(value);
+}
+
+window.onclick = (e) => {
+    if (e.target === document.getElementById('reportModal')) closeReportModal();
 };
 
-document.addEventListener('keydown', (e) => { 
-    if (e.key === 'Escape') closeReportModal(); 
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeReportModal();
 });
 
 window.onload = () => {
     loadUserData();
-    fetchUserAvatar(); 
-    load();
+    fetchUserAvatar();
+    fetchGigDetails();
 };

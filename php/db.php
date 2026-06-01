@@ -1,9 +1,3 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "Taskly";
-
-$conn = mysqli_connect($servername, $username, $password, $dbname);
-if($conn) echo "good";
+require_once __DIR__ . '/config/db.php';
 ?>
