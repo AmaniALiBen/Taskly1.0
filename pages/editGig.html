@@ -1,20 +1,23 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Taskly | Edit Your Gig</title>
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/createGig.css" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  </head>
-  <body>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body>
     <div class="animated-background"></div>
 
-    
 
-  <nav class="navbar">
+
+    <nav class="navbar">
         <div class="container nav-content">
             <div class="nav-left">
                 <button class="btn-back" onclick="goBack()" title="Go Back">
@@ -25,7 +28,7 @@
 
             <!-- User Menu (Avatar + Orders button) -->
             <div class="user-menu">
-                
+
                 <div class="user-avatar" onclick="goToProfile()">
                     <img id="user-avatar-img" src="https://i.pravatar.cc/100?u=default" alt="Avatar">
                 </div>
@@ -34,175 +37,182 @@
     </nav>
 
     <main class="registration-container">
-      <div class="form-card wide-card">
-        <div class="form-header">
-          <h2>Edit <span>Your Gig</span></h2>
-          <p>Update your luxury service details</p>
-        </div>
+        <div class="form-card wide-card">
+            <div class="form-header">
+                <h2>Edit <span>Your Gig</span></h2>
+                <p>Update your luxury service details</p>
+            </div>
 
-        <form id="editGigForm">
-          <div class="form-section">
-            <div class="input-group">
-              <label>Gig Title</label>
-              <input type="text" id="editTitle" class="custom-input title-field" required />
-            </div>
-            <div class="input-group">
-              <label>Gig Description</label>
-              <textarea id="editDesc" class="custom-input desc-field" required></textarea>
-            </div>
-          </div>
-<div class="form-section">
-    <div class="input-grid">
-        <div class="input-group">
-            <label>Category</label>
-            <div class="select-wrapper">
-                <select class="custom-select" id="mainCategory" required>
-                    <option value="" disabled>Select Category</option>
-                    <option value="design">Graphics & Design</option>
-                    <option value="coding">Programming & Tech</option>
-                    <option value="marketing">Digital Marketing</option>
-                </select>
-            </div>
-        </div>
-        <div class="input-group">
-            <label>Sub-Category</label>
-            <div class="select-wrapper">
-                <select class="custom-select" id="subCategory" required>
-                    </select>
-            </div>
-        </div>
-    </div>
-</div>
-          <div class="form-section">
-            <label class="section-label">Gig Gallery</label>
-            <div class="image-upload-grid">
-              <div class="upload-sq-box" onclick="document.getElementById('imgInput').click()">
-                <i class="fas fa-plus"></i>
-                <input type="file" id="imgInput" hidden multiple accept="image/*" />
-              </div>
-              <div id="imagePreviewContainer" class="image-upload-grid" style="display: contents;">
-                 </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <label class="section-label">Pricing Packages</label>
-            <div class="packages-container">
-              
-              <div class="p-card basic-tier">
-                <div class="p-head">Basic</div>
-                <div class="p-content">
-                  <div class="package-meta-inputs">
-                    <div class="meta-field">
-                        <label><i class="far fa-clock"></i> Delivery</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="basicTime" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="basicUnit">
-                                    <option value="days">Days</option>
-                                    <option value="hours">Hours</option>
-                                </select>
-                            </div>
-                        </div>
+            <form id="editGigForm">
+                <div class="form-section">
+                    <div class="input-group">
+                        <label>Gig Title</label>
+                        <input type="text" id="editTitle" class="custom-input title-field" required />
                     </div>
-                    <div class="meta-field">
-                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="basicRevNum" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="basicRevType" onchange="toggleUnlimited(this)">
-                                    <option value="limited">Fixed</option>
-                                    <option value="unlimited">Unlimited</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="input-group">
+                        <label>Gig Description</label>
+                        <textarea id="editDesc" class="custom-input desc-field" required></textarea>
                     </div>
-                  </div>
-                  <ul class="feature-list" id="list-basic"></ul>
-                  <button type="button" class="btn-add-item" onclick="addNewItem('list-basic')">+ Add Item</button>
-                  <div class="p-price"><span>$</span><input type="number" id="basicPrice" class="price-input"></div>
                 </div>
-              </div>
-
-              <div class="p-card standard-tier featured">
-                <div class="p-head">Standard</div>
-                <div class="p-content">
-                  <div class="package-meta-inputs">
-                    <div class="meta-field">
-                        <label><i class="far fa-clock"></i> Delivery</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="standardTime" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="standardUnit">
-                                    <option value="days">Days</option>
-                                    <option value="hours">Hours</option>
+                <div class="form-section">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Category</label>
+                            <div class="select-wrapper">
+                                <select class="custom-select" id="mainCategory" required>
+                                    <option value="" disabled selected>Select Category</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Sub-Category</label>
+                            <div class="select-wrapper">
+                                <select class="custom-select" id="subCategory" required>
                                 </select>
                             </div>
                         </div>
                     </div>
-                    <div class="meta-field">
-                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="standardRevNum" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="standardRevType" onchange="toggleUnlimited(this)">
-                                    <option value="limited">Fixed</option>
-                                    <option value="unlimited">Unlimited</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-                  <ul class="feature-list" id="list-standard"></ul>
-                  <button type="button" class="btn-add-item" onclick="addNewItem('list-standard')">+ Add Item</button>
-                  <div class="p-price"><span>$</span><input type="number" id="standardPrice" class="price-input"></div>
                 </div>
-              </div>
-
-              <div class="p-card premium-tier">
-                <div class="p-head">Premium</div>
-                <div class="p-content">
-                  <div class="package-meta-inputs">
-                    <div class="meta-field">
-                        <label><i class="far fa-clock"></i> Delivery</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="premiumTime" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="premiumUnit">
-                                    <option value="days">Days</option>
-                                    <option value="hours">Hours</option>
-                                </select>
-                            </div>
+                <div class="form-section">
+                    <label class="section-label">Gig Gallery</label>
+                    <div class="image-upload-grid">
+                        <div class="upload-sq-box" onclick="document.getElementById('imgInput').click()">
+                            <i class="fas fa-plus"></i>
+                            <input type="file" id="imgInput" hidden multiple accept="image/*" />
+                        </div>
+                        <div id="imagePreviewContainer" class="image-upload-grid" style="display: contents;">
                         </div>
                     </div>
-                    <div class="meta-field">
-                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
-                        <div class="meta-input-flex">
-                            <input type="number" id="premiumRevNum" class="meta-num-input">
-                            <div class="select-wrapper flex-grow">
-                                <select class="meta-unit-select" id="premiumRevType" onchange="toggleUnlimited(this)">
-                                    <option value="limited">Fixed</option>
-                                    <option value="unlimited">Unlimited</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-                  <ul class="feature-list" id="list-premium"></ul>
-                  <button type="button" class="btn-add-item" onclick="addNewItem('list-premium')">+ Add Item</button>
-                  <div class="p-price"><span>$</span><input type="number" id="premiumPrice" class="price-input"></div>
                 </div>
-              </div>
 
-            </div>
-          </div>
+                <div class="form-section">
+                    <label class="section-label">Pricing Packages</label>
+                    <div class="packages-container">
 
-          <button type="submit" class="submit-btn">Update Gig</button>
-        </form>
-      </div>
+                        <div class="p-card basic-tier">
+                            <div class="p-head">Basic</div>
+                            <div class="p-content">
+                                <div class="package-meta-inputs">
+                                    <div class="meta-field">
+                                        <label><i class="far fa-clock"></i> Delivery</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="basicTime" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="basicUnit">
+                                                    <option value="days">Days</option>
+                                                    <option value="hours">Hours</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="meta-field">
+                                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="basicRevNum" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="basicRevType"
+                                                    onchange="toggleUnlimited(this)">
+                                                    <option value="limited">Fixed</option>
+                                                    <option value="unlimited">Unlimited</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <ul class="feature-list" id="list-basic"></ul>
+                                <button type="button" class="btn-add-item" onclick="addNewItem('list-basic')">+ Add
+                                    Item</button>
+                                <div class="p-price"><span>$</span><input type="number" id="basicPrice"
+                                        class="price-input"></div>
+                            </div>
+                        </div>
+
+                        <div class="p-card standard-tier featured">
+                            <div class="p-head">Standard</div>
+                            <div class="p-content">
+                                <div class="package-meta-inputs">
+                                    <div class="meta-field">
+                                        <label><i class="far fa-clock"></i> Delivery</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="standardTime" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="standardUnit">
+                                                    <option value="days">Days</option>
+                                                    <option value="hours">Hours</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="meta-field">
+                                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="standardRevNum" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="standardRevType"
+                                                    onchange="toggleUnlimited(this)">
+                                                    <option value="limited">Fixed</option>
+                                                    <option value="unlimited">Unlimited</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <ul class="feature-list" id="list-standard"></ul>
+                                <button type="button" class="btn-add-item" onclick="addNewItem('list-standard')">+ Add
+                                    Item</button>
+                                <div class="p-price"><span>$</span><input type="number" id="standardPrice"
+                                        class="price-input"></div>
+                            </div>
+                        </div>
+
+                        <div class="p-card premium-tier">
+                            <div class="p-head">Premium</div>
+                            <div class="p-content">
+                                <div class="package-meta-inputs">
+                                    <div class="meta-field">
+                                        <label><i class="far fa-clock"></i> Delivery</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="premiumTime" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="premiumUnit">
+                                                    <option value="days">Days</option>
+                                                    <option value="hours">Hours</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="meta-field">
+                                        <label><i class="fas fa-sync-alt"></i> Revisions</label>
+                                        <div class="meta-input-flex">
+                                            <input type="number" id="premiumRevNum" class="meta-num-input">
+                                            <div class="select-wrapper flex-grow">
+                                                <select class="meta-unit-select" id="premiumRevType"
+                                                    onchange="toggleUnlimited(this)">
+                                                    <option value="limited">Fixed</option>
+                                                    <option value="unlimited">Unlimited</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <ul class="feature-list" id="list-premium"></ul>
+                                <button type="button" class="btn-add-item" onclick="addNewItem('list-premium')">+ Add
+                                    Item</button>
+                                <div class="p-price"><span>$</span><input type="number" id="premiumPrice"
+                                        class="price-input"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Update Gig</button>
+            </form>
+        </div>
     </main>
-    
+
     <div id="notification-container" class="notification-container"></div>
     <script src="../js/editGig.js"></script>
-  </body>
+</body>
+
 </html>

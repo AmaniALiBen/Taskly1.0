@@ -367,7 +367,9 @@
     </div>
 </div>
 
-<script src="../js/admin.js"></script>
+<!-- <script src="../js/admin.js"></script> -->
+<script src="../js/admin-categories.js"></script>
+
 <script src="../js/admin-disputes.js"></script>
 </body>
 </html>

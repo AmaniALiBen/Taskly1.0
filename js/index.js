@@ -1,84 +1,24 @@
 // ============================================
-// DATA (Will be replaced by API calls)
+// API ENDPOINTS
 // ============================================
-const categoriesData = [
-    { id: 1, name: "Design", icon: "fa-palette", color: "#a78bfa", bg: "rgba(124, 58, 237, 0.15)" },
-    { id: 2, name: "Coding", icon: "fa-code", color: "#60a5fa", bg: "rgba(59, 130, 246, 0.15)" },
-    { id: 3, name: "Video", icon: "fa-video", color: "#f87171", bg: "rgba(239, 68, 68, 0.15)" },
-    { id: 4, name: "Writing", icon: "fa-pen", color: "#4ade80", bg: "rgba(34, 197, 94, 0.15)" },
-    { id: 5, name: "Ads", icon: "fa-bullhorn", color: "#facc15", bg: "rgba(234, 179, 8, 0.15)" },
-    { id: 6, name: "Music", icon: "fa-music", color: "#f472b6", bg: "rgba(236, 72, 153, 0.15)" }
-];
-
-const gigsList = [
-    { id: 1, title: "Modern Luxury Brand Identity Design", price: 80, category: "Design", freelancer: "Ahmed B.", avatar: "https://i.pravatar.cc/100?u=1", image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800", rating: 4.9 },
-    { id: 2, title: "Full Stack Web Application Development", price: 350, category: "Coding", freelancer: "Sara M.", avatar: "https://i.pravatar.cc/100?u=2", image: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=800", rating: 5.0 },
-    { id: 3, title: "Social Media Video Marketing Content", price: 120, category: "Video", freelancer: "Omar K.", avatar: "https://i.pravatar.cc/100?u=3", image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800", rating: 4.8 },
-    { id: 4, title: "Business Strategy & Growth Consulting", price: 150, category: "Ads", freelancer: "Layla T.", avatar: "https://i.pravatar.cc/100?u=4", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800", rating: 4.7 },
-    { id: 5, title: "UI/UX Design for Mobile App", price: 200, category: "Design", freelancer: "Nadia R.", avatar: "https://i.pravatar.cc/100?u=5", image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?w=800", rating: 4.9 },
-    { id: 6, title: "Backend API Development", price: 400, category: "Coding", freelancer: "Khaled M.", avatar: "https://i.pravatar.cc/100?u=6", image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800", rating: 4.8 }
-];
-// ============================================
-// FETCH USER AVATAR FROM DATABASE
-// ============================================
-async function fetchUserAvatar() {
-    try {
-        const response = await fetch('php/getUser.php');
-        const data = await response.json();
-        
-        console.log('Avatar data:', data);
-        
-        if (data.loggedIn) {
-            const avatarImg = document.getElementById('user-avatar-img');
-            
-            if (avatarImg) {
-                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
-                    avatarImg.src = data.avatar;
-                } else {
-                    // صورة افتراضية تعتمد على اسم المستخدم
-                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching avatar:', error);
-    }
-}
+const CAT_API = '/Taskly/controllers/CategoryController.php';
+const GIG_API = '/Taskly/controllers/GigController.php';
 
 // ============================================
-// UPDATE UI WHEN USER IS LOGGED IN (MODIFIED)
+// TEMPORARY - AUTO LOGIN FOR DEVELOPMENT
 // ============================================
-function updateUIForLoggedInUser() {
-    const authButtons = document.getElementById('auth-buttons');
-    const userMenu = document.getElementById('user-menu');
-    const userNameSpan = document.getElementById('user-name');
-    const userAvatarImg = document.getElementById('user-avatar-img');
-    const adminLink = document.getElementById('admin-link');
-    
-    if (authButtons) authButtons.classList.add('hidden');
-    if (userMenu) userMenu.classList.remove('hidden');
-    if (userNameSpan && currentUser) {
-        userNameSpan.textContent = currentUser.name;
-    }
-    
-    // جلب الصورة من قاعدة البيانات
-    if (userAvatarImg) {
-        fetchUserAvatar();
-    }
-    
-    if (adminLink && currentUser && currentUser.role === 'admin') {
-        adminLink.style.display = 'inline-block';
-    } else if (adminLink) {
-        adminLink.style.display = 'none';
-    }
-}
+// 🔧 REMOVE THIS BLOCK WHEN LOGIN IS READY 🔧
+const DEV_MODE = true;
 // ============================================
-// AUTHENTICATION STATE
+
+// ============================================
+// GLOBAL VARIABLES
 // ============================================
 let isLoggedIn = false;
 let currentUser = null;
 let toastTimeout;
 let categorySwiper = null;
+let globalCategories = []; // Store categories globally
 
 // ============================================
 // TOAST FUNCTIONS
@@ -99,40 +39,68 @@ function showToast(message, type = 'success') {
 }
 
 // ============================================
-// FETCH USER DATA FROM SERVER
+// FETCH CATEGORIES FROM DATABASE
 // ============================================
-// ============================================
-// FETCH USER DATA FROM SERVER
-// ============================================
-async function fetchUserData() {
+async function fetchCategories() {
     try {
-        const response = await fetch('php/getUser.php');
+        const response = await fetch(`${CAT_API}?action=get_all`);
         const data = await response.json();
         
-        if (data.loggedIn) {
-            isLoggedIn = true;
-            currentUser = {
-                name: data.username,
-                email: data.email,
-                role: data.role,
-                avatar: data.avatar
-            };
-            updateUIForLoggedInUser();
-        } else {
-            isLoggedIn = false;
-            currentUser = null;
-            updateUIForLoggedOutUser();
+        if (data.success && data.data.length > 0) {
+            globalCategories = data.data; // Store globally
+            return data.data;
         }
+        return [];
     } catch (error) {
-        console.error('Error fetching user:', error);
-        updateUIForLoggedOutUser();
+        console.error('Error fetching categories:', error);
+        return [];
     }
 }
 
+// ============================================
+// FETCH POPULAR GIGS FROM DATABASE
+// ============================================
+async function fetchPopularGigs() {
+    try {
+        const response = await fetch(`${GIG_API}?action=public_gigs&limit=8`);
+        const data = await response.json();
+        
+        console.log('Popular gigs:', data);
+        
+        if (data.success && data.data.length > 0) {
+            return data.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching gigs:', error);
+        return [];
+    }
+}
 
-async function checkAuthStatus() {
-    await fetchUserData();
-    await fetchUserAvatar();
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+// ============================================
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('/Taskly/php/getUser.php');
+        const data = await response.json();
+        
+        console.log('Avatar data:', data);
+        
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            
+            if (avatarImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    avatarImg.src = data.avatar;
+                } else {
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching avatar:', error);
+    }
 }
 
 // ============================================
@@ -150,9 +118,11 @@ function updateUIForLoggedInUser() {
     if (userNameSpan && currentUser) {
         userNameSpan.textContent = currentUser.name;
     }
-    if (userAvatarImg && currentUser) {
-        userAvatarImg.src = currentUser.avatar || 'https://i.pravatar.cc/100?u=' + currentUser.email;
+    
+    if (userAvatarImg) {
+        fetchUserAvatar();
     }
+    
     if (adminLink && currentUser && currentUser.role === 'admin') {
         adminLink.style.display = 'inline-block';
     } else if (adminLink) {
@@ -179,6 +149,57 @@ function updateUIForLoggedOutUser() {
     }
 }
 
+// ============================================
+// FETCH USER DATA FROM SERVER
+// ============================================
+async function fetchUserData() {
+    // 🔧 TEMPORARY: Skip real login check during development
+    if (DEV_MODE) {
+        isLoggedIn = true;
+        currentUser = {
+            name: 'Developer',
+            email: 'dev@taskly.com',
+            role: 'buyer',
+            avatar: null
+        };
+        updateUIForLoggedInUser();
+        return;
+    }
+    // 🔧 END OF TEMPORARY CODE - REMOVE ABOVE BLOCK WHEN LOGIN IS READY
+    
+    // ORIGINAL CODE (unchanged)
+    try {
+        const response = await fetch('/Taskly/php/getUser.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            isLoggedIn = true;
+            currentUser = {
+                name: data.username,
+                email: data.email,
+                role: data.role,
+                avatar: data.avatar
+            };
+            updateUIForLoggedInUser();
+        } else {
+            isLoggedIn = false;
+            currentUser = null;
+            updateUIForLoggedOutUser();
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        updateUIForLoggedOutUser();
+    }
+}
+
+async function checkAuthStatus() {
+    await fetchUserData();
+    await fetchUserAvatar();
+}
+
+// ============================================
+// NAVIGATION
+// ============================================
 function goToOrders() {
     if (!isLoggedIn) {
         showToast('Please login to view your orders', 'error');
@@ -198,22 +219,68 @@ function goToProfile() {
 }
 
 // ============================================
-// CATEGORY SLIDER (Swiper)
+// CATEGORY SLIDER (Swiper) - FROM DATABASE
 // ============================================
-function initCategorySlider() {
+async function initCategorySlider() {
     const container = document.getElementById('categories-container');
     if (!container) return;
 
-    container.innerHTML = categoriesData.map(cat => `
+    // Show loading state
+    container.innerHTML = `
         <div class="swiper-slide">
-            <div class="category-item" data-category="${cat.name}" onclick="filterByCategory('${cat.name}')">
-                <div class="category-icon" style="background: ${cat.bg}; color: ${cat.color};">
-                    <i class="fas ${cat.icon}"></i>
+            <div class="category-item">
+                <div class="category-icon" style="background: rgba(124,58,237,0.15); color: #a78bfa;">
+                    <i class="fas fa-spinner fa-pulse"></i>
                 </div>
-                <span class="category-label">${cat.name}</span>
+                <span class="category-label">Loading...</span>
             </div>
         </div>
-    `).join('');
+    `;
+
+    const categories = await fetchCategories();
+    
+    if (categories.length === 0) {
+        container.innerHTML = `
+            <div class="swiper-slide">
+                <div class="category-item">
+                    <div class="category-icon" style="background: rgba(239,68,68,0.15); color: #f87171;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <span class="category-label">No categories</span>
+                </div>
+            </div>
+        `;
+    } else {
+        // Default icons and colors for categories
+        const defaultIcons = ['fa-palette', 'fa-code', 'fa-video', 'fa-pen', 'fa-bullhorn', 'fa-music'];
+        const defaultColors = ['#a78bfa', '#60a5fa', '#f87171', '#4ade80', '#facc15', '#f472b6'];
+        const defaultBgs = ['rgba(124,58,237,0.15)', 'rgba(59,130,246,0.15)', 'rgba(239,68,68,0.15)', 'rgba(34,197,94,0.15)', 'rgba(234,179,8,0.15)', 'rgba(236,72,153,0.15)'];
+        
+        container.innerHTML = categories.map((cat, index) => {
+            const icon = cat.icon_url || defaultIcons[index % defaultIcons.length];
+            const color = defaultColors[index % defaultColors.length];
+            const bg = defaultBgs[index % defaultBgs.length];
+            return `
+                <div class="swiper-slide">
+                    <div class="category-item" data-category-id="${cat.id}" data-category-name="${escapeHtml(cat.name)}">
+                        <div class="category-icon" style="background: ${bg}; color: ${color};">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <span class="category-label">${escapeHtml(cat.name)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers to category items
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const categoryId = item.dataset.categoryId;
+                const categoryName = item.dataset.categoryName;
+                filterByCategory(categoryName, categoryId);
+            });
+        });
+    }
 
     if (categorySwiper) categorySwiper.destroy(true, true);
 
@@ -235,13 +302,15 @@ function initCategorySlider() {
     });
 }
 
-function filterByCategory(categoryName) {
+function filterByCategory(categoryName, categoryId) {
     if (!isLoggedIn) {
         showToast('Please login to view gigs', 'error');
         openLoginModal();
         return;
     }
-    window.location.href = `pages/gigs.html?category=${encodeURIComponent(categoryName)}`;
+    
+    // Use the categoryId passed from the click event
+    window.location.href = `pages/gigs.html?category_id=${categoryId}`;
 }
 
 // ============================================
@@ -278,27 +347,47 @@ function setupSearchEnterKey() {
 }
 
 // ============================================
-// GIG RENDERING
+// GIG RENDERING - FROM DATABASE
 // ============================================
-function renderAvailableGigs() {
+async function renderAvailableGigs() {
     const container = document.getElementById('gigs-main-container');
     if (!container) return;
 
-    container.innerHTML = gigsList.map(gig => `
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 60px;">
+            <i class="fas fa-spinner fa-pulse" style="font-size: 2rem;"></i>
+            <p>Loading gigs...</p>
+        </div>
+    `;
+
+    const gigs = await fetchPopularGigs();
+
+    if (gigs.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 60px;">
+                <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.5;"></i>
+                <p>No gigs available yet.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = gigs.map(gig => `
         <div class="gig-card" onclick="navigateToGigDetails(${gig.id})">
             <div class="gig-image-container">
-                <img src="${gig.image}" alt="${gig.title}" loading="lazy">
+                <img src="${gig.image || '/Taskly/images/default-gig.jpg'}" alt="${escapeHtml(gig.title)}" loading="lazy">
             </div>
             <div class="gig-body-content">
                 <div class="gig-seller-info">
-                    <img src="${gig.avatar}" class="seller-avatar">
-                    <span class="seller-name">${gig.freelancer}</span>
+                    <img src="${gig.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(gig.freelancer || 'U') + '&background=7c3aed&color=fff'}" class="seller-avatar">
+                    <span class="seller-name">${escapeHtml(gig.freelancer || 'Taskly Seller')}</span>
                 </div>
-                <span class="gig-category-badge">${gig.category}</span>
-                <h3 class="gig-title-text">${gig.title}</h3>
+                <span class="gig-category-badge">${escapeHtml(gig.category)}</span>
+                <h3 class="gig-title-text">${escapeHtml(gig.title)}</h3>
                 <div class="gig-footer-info">
                     <div class="rating-display">
-                        <i class="fas fa-star"></i> ${gig.rating}
+                        <i class="fas fa-star"></i> ${gig.rating || 'New'}
                     </div>
                     <div>
                         <span class="price-label">Starting at</span>
@@ -421,7 +510,7 @@ async function handleLogin(e) {
     if (!email || !password) return showToast('Please fill in all fields', 'error');
     
     try {
-        const response = await fetch('php/logIn.php', {
+        const response = await fetch('/Taskly/php/logIn.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, remember })
@@ -461,14 +550,13 @@ async function handleBuyerSignup(e) {
     if (!terms) return showToast('You must accept the Terms & Conditions', 'error');
 
     try {
-        const response = await fetch('php/signup.php', {
+        const response = await fetch('/Taskly/php/signup.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 username: name, 
                 email: email, 
                 password: password,
-              
             })
         });
         const data = await response.json();
@@ -511,6 +599,19 @@ function setupEnterKeyForForms() {
 }
 
 // ============================================
+// HELPER FUNCTIONS
+// ============================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 window.onclick = function (e) {
@@ -530,10 +631,10 @@ document.addEventListener('keydown', e => {
     }
 });
 
-window.onload = function () {
-    renderAvailableGigs();
-    initCategorySlider();
-    checkAuthStatus();
+window.onload = async function () {
+    await renderAvailableGigs();
+    await initCategorySlider();
+    await checkAuthStatus();
     setupSearchEnterKey();
     setupEnterKeyForForms();
     
