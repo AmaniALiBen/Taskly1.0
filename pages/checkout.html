@@ -131,38 +131,46 @@
         </div>
 
         <!-- RIGHT SIDE -->
-        <div class="checkout-card">
-            <div class="checkout-title">
-                <i class="fa-solid fa-receipt"></i>
-                Order Summary
-            </div>
+       <!-- RIGHT SIDE -->
+<div class="checkout-card">
+    <div class="checkout-title">
+        <i class="fa-solid fa-receipt"></i>
+        Order Summary
+    </div>
 
-            <div class="product-box">
-                <img id="order-image" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300" alt="">
-                <div>
-                    <h4 id="order-title">Advanced Web Development</h4>
-                    <span class="badge" id="order-package">Premium Package</span>
-                </div>
-            </div>
-
-            <div class="features" id="order-features">
-                <div><i class="fa fa-check"></i> 15 Custom Pages</div>
-                <div><i class="fa fa-check"></i> Admin Dashboard</div>
-                <div><i class="fa fa-check"></i> SEO Optimization</div>
-            </div>
-
-            <div class="price">
-                <div><span>Base Price</span><span id="base-price">$499</span></div>
-                <div><span>Service Fee</span><span>$25</span></div>
-                <div class="total"><span>Total</span><span id="total-amount">$524</span></div>
-            </div>
-
-            <button class="pay-btn" id="pay-btn">Complete Payment</button>
-
-            <div class="secure">
-                <i class="fa fa-lock"></i> Secure Transaction
+    <div class="product-box">
+        <img id="order-image" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300" alt="">
+        <div>
+            <h4 id="order-title">Advanced Web Development</h4>
+            <span class="badge" id="order-package">Premium Package</span>
+            <div class="seller-name" style="margin-top: 5px; font-size: 0.7rem; color: var(--text-secondary);">
+                by <span id="order-seller">Vector Aura</span>
             </div>
         </div>
+    </div>
+
+    <!-- Delivery & Revisions Row -->
+    <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; margin-bottom: 15px;">
+        <span id="order-delivery"><i class="far fa-clock"></i> Loading...</span>
+        <span id="order-revisions"><i class="fas fa-sync"></i> Loading...</span>
+    </div>
+
+    <div class="features" id="order-features">
+        <div><i class="fa fa-check"></i> 15 Custom Pages</div>
+        <div><i class="fa fa-check"></i> Admin Dashboard</div>
+        <div><i class="fa fa-check"></i> SEO Optimization</div>
+    </div>
+
+    <div class="price">
+    <div class="total"><span>Total</span><span id="total-amount">$0</span></div>
+</div>
+
+    <button class="pay-btn" id="pay-btn">Complete Payment</button>
+
+    <div class="secure">
+        <i class="fa fa-lock"></i> Secure Transaction
+    </div>
+</div>
     </div>
 
     <script src="../js/checkout.js"></script>

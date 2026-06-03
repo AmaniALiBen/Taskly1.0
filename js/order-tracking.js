@@ -435,3 +435,127 @@ async function fetchUserAvatar() {
 document.addEventListener('DOMContentLoaded', function() {
     fetchUserAvatar();
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================
+// ORDERS API
+// ============================================
+const ORDERS_API = '/Taskly/controllers/OrderController.php';
+
+// جلب تفاصيل الطلب من قاعدة البيانات
+async function loadOrderFromDatabase(orderId) {
+    try {
+        const response = await fetch(`${ORDERS_API}?action=get_order&order_id=${orderId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.order;
+        } else {
+            console.error('Order not found:', data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error loading order:', error);
+        return null;
+    }
+}
+
+// إرسال المتطلبات إلى قاعدة البيانات
+async function submitRequirementsToDatabase(orderId, requirementsText) {
+    try {
+        const response = await fetch(`${ORDERS_API}?action=submit_requirements`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                order_id: orderId, 
+                requirements_text: requirementsText 
+            })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            return { success: true, started_at: data.started_at, deadline: data.deadline };
+        } else {
+            return { success: false, message: data.message };
+        }
+    } catch (error) {
+        console.error('Error submitting requirements:', error);
+        return { success: false, message: 'Connection error' };
+    }
+}
+
+// تعديل دالة submitRequirements الحالية
+async function submitRequirements() {
+    const val = document.getElementById('req-text').value.trim();
+    if (!val) return showToast("Please type your requirements first.", "error");
+
+    const orderId = getOrderIdFromUrl();
+    
+    // إرسال المتطلبات إلى قاعدة البيانات
+    const result = await submitRequirementsToDatabase(orderId, val);
+    
+    if (!result.success) {
+        showToast(result.message, 'error');
+        return;
+    }
+    
+    // تحديث الواجهة
+    document.getElementById('final-req-display').textContent = val;
+    
+    // تحديث حالة الطلب في localStorage
+    updateLocalOrderStatus(orderId, 'in_progress', result.started_at, result.deadline);
+    
+    document.getElementById('req-edit-mode').classList.add('hidden');
+    document.getElementById('req-view-mode').classList.remove('hidden');
+    document.getElementById('btn-messages').disabled = false;
+    document.getElementById('btn-deliveries').disabled = false;
+
+    document.getElementById('node-1').classList.replace('active', 'completed');
+    document.getElementById('node-1').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
+    document.getElementById('node-2').classList.add('active');
+
+    document.getElementById('status-val').textContent = "In Progress";
+    document.getElementById('status-val').style.color = "var(--primary-color)";
+
+    showToast("Project started successfully!", "success");
+    setTimeout(() => switchTab('messages'), 400);
+}
+
+// تحديث الطلب في localStorage
+function updateLocalOrderStatus(orderId, status, startedAt, deadline) {
+    let orders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+    const orderIndex = orders.findIndex(o => o.id == orderId);
+    
+    if (orderIndex !== -1) {
+        orders[orderIndex].status = status;
+        orders[orderIndex].started_at = startedAt;
+        orders[orderIndex].deadline = deadline;
+        localStorage.setItem('userOrders', JSON.stringify(orders));
+    }
+}
+
+// الحصول على Order ID من URL
+function getOrderIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}

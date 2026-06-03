@@ -7,6 +7,7 @@
 // ============================================
 const WALLET_API = '/Taskly/controllers/WalletController.php';
 const GIG_API = '/Taskly/controllers/GigController.php';
+const ORDERS_API = '/Taskly/controllers/OrderController.php';
 
 // ============================================
 // GLOBAL VARIABLES
@@ -103,9 +104,9 @@ async function loadWalletBalance() {
 }
 
 // ============================================
-// LOAD ORDER FROM DATABASE
+// LOAD ORDER FROM localStorage (بيانات من gig-details)
 // ============================================
-async function loadOrderFromDatabase() {
+function loadOrderFromStorage() {
     const storedOrder = localStorage.getItem('checkoutOrder');
     
     if (!storedOrder) {
@@ -114,94 +115,13 @@ async function loadOrderFromDatabase() {
         return;
     }
     
-    const tempOrder = JSON.parse(storedOrder);
-    const gigId = tempOrder.gigId;
-    const packageId = tempOrder.packageId;
-    
-    const titleElement = document.getElementById('order-title');
-    const packageElement = document.getElementById('order-package');
-    if (titleElement) titleElement.textContent = 'Loading...';
-    if (packageElement) packageElement.textContent = 'Loading...';
-    
-    try {
-        const response = await fetch(`${GIG_API}?action=get_gig_details&id=${gigId}`);
-        const result = await response.json();
-        
-        if (!result.success) {
-            showToast('Gig not found', 'error');
-            setTimeout(() => window.location.href = 'gigs.html', 2000);
-            return;
-        }
-        
-        const gig = result.data;
-        
-        let selectedPackage = null;
-        let packageType = null;
-        
-        if (gig.packages) {
-            if (gig.packages.basic && gig.packages.basic.id == packageId) {
-                selectedPackage = gig.packages.basic;
-                packageType = 'basic';
-            } else if (gig.packages.standard && gig.packages.standard.id == packageId) {
-                selectedPackage = gig.packages.standard;
-                packageType = 'standard';
-            } else if (gig.packages.premium && gig.packages.premium.id == packageId) {
-                selectedPackage = gig.packages.premium;
-                packageType = 'premium';
-            }
-        }
-        
-        if (!selectedPackage) {
-            showToast('Selected package not found', 'error');
-            setTimeout(() => window.location.href = 'gigs.html', 2000);
-            return;
-        }
-        
-        // تحويل delivery و revisions
-        let deliveryText = selectedPackage.delivery || '';
-        if (!deliveryText && selectedPackage.delivery_time_days) {
-            const days = parseInt(selectedPackage.delivery_time_days);
-            deliveryText = `${days} Day${days > 1 ? 's' : ''} Delivery`;
-        }
-        
-        let revisionsText = selectedPackage.revisions || '';
-        if (!revisionsText && selectedPackage.revisions_allowed !== undefined) {
-            const revs = parseInt(selectedPackage.revisions_allowed);
-            if (revs === 999 || revs === 0) {
-                revisionsText = 'Unlimited Revisions';
-            } else {
-                revisionsText = `${revs} Revision${revs > 1 ? 's' : ''}`;
-            }
-        }
-        
-        orderData = {
-            gigId: gig.id,
-            packageId: selectedPackage.id,
-            packageType: packageType,
-            title: gig.title,
-            packageName: selectedPackage.name,
-            price: parseFloat(selectedPackage.price),
-            seller: gig.seller,
-            sellerId: gig.sellerId,
-            delivery: deliveryText,
-            revisions: revisionsText,
-            features: selectedPackage.features || [],
-            image: tempOrder.image || (gig.images && gig.images[0]) || '/Taskly/images/default-gig.jpg'
-        };
-        
-        updateOrderSummary();
-        
-    } catch (error) {
-        console.error('Error loading gig data:', error);
-        showToast('Failed to load order details', 'error');
-        setTimeout(() => window.location.href = 'gigs.html', 2000);
-    }
+    orderData = JSON.parse(storedOrder);
+    updateOrderSummary();
 }
 
 function updateOrderSummary() {
     const titleElement = document.getElementById('order-title');
     const packageElement = document.getElementById('order-package');
-    const basePriceElement = document.getElementById('base-price');
     const totalElement = document.getElementById('total-amount');
     const sellerElement = document.getElementById('order-seller');
     const deliveryElement = document.getElementById('order-delivery');
@@ -219,18 +139,21 @@ function updateOrderSummary() {
     }
     
     const totalPrice = orderData.price || 0;
-    const serviceFee = totalPrice * 0.05;
-    const basePrice = totalPrice - serviceFee;
     
-    if (basePriceElement) basePriceElement.textContent = `$${basePrice.toFixed(2)}`;
+    // ✅ السعر الكامل بدون أي رسوم
     if (totalElement) totalElement.textContent = `$${totalPrice.toFixed(2)}`;
     
-    if (deliveryElement) deliveryElement.innerHTML = `<i class="far fa-clock"></i> ${orderData.delivery || 'Standard Delivery'}`;
-    if (revisionsElement) revisionsElement.innerHTML = `<i class="fas fa-sync"></i> ${orderData.revisions || '2 Revisions'}`;
+    if (deliveryElement) {
+        deliveryElement.innerHTML = `<i class="far fa-clock"></i> ${orderData.delivery || 'Standard Delivery'}`;
+    }
+    
+    if (revisionsElement) {
+        revisionsElement.innerHTML = `<i class="fas fa-sync"></i> ${orderData.revisions || '2 Revisions'}`;
+    }
     
     if (featuresContainer && orderData.features && orderData.features.length > 0) {
         featuresContainer.innerHTML = orderData.features.map(f => `
-            <div class="feature-item"><i class="fas fa-check"></i> ${escapeHtml(f)}</div>
+            <div><i class="fa fa-check"></i> ${escapeHtml(f)}</div>
         `).join('');
     }
     
@@ -473,7 +396,7 @@ function validateWalletPayment() {
 }
 
 // ============================================
-// PROCESS WALLET PAYMENT (بدون مودال)
+// PROCESS WALLET PAYMENT
 // ============================================
 async function processWalletPayment(amount, pin) {
     try {
@@ -530,43 +453,51 @@ async function processPayment() {
 }
 
 // ============================================
-// EXECUTE PAYMENT (Non-wallet methods)
+// CREATE ORDER IN DATABASE AFTER PAYMENT
 // ============================================
-function executeNonWalletPayment() {
-    const totalAmount = getTotalAmount();
-    const orderId = Math.floor(Math.random() * 10000) + 1000;
+async function createOrderInDatabase(paymentMethod) {
+    if (!orderData) {
+        console.error('No order data available');
+        return null;
+    }
     
-    showToast(`Payment of $${totalAmount.toFixed(2)} processed successfully!`, 'success');
-    
-    const newOrder = {
-        id: orderId,
-        gigId: orderData?.gigId,
-        packageId: orderData?.packageId,
-        title: orderData?.title || "Web Development",
-        packageName: orderData?.packageName || "Premium Package",
-        amount: totalAmount,
-        status: "In Progress",
-        date: new Date().toISOString(),
-        seller: orderData?.seller || "Vector Aura",
-        sellerId: orderData?.sellerId,
-        paymentMethod: selectedMethod
+    const orderPayload = {
+        gig_id: orderData.gigId,
+        package_id: orderData.packageId,
+        seller_id: orderData.sellerId,
+        amount: orderData.price,
+        payment_method: paymentMethod
     };
     
-    let orders = JSON.parse(localStorage.getItem('userOrders') || '[]');
-    orders.unshift(newOrder);
-    localStorage.setItem('userOrders', JSON.stringify(orders));
+    console.log('Creating order with payload:', orderPayload);
     
-    localStorage.removeItem('checkoutOrder');
-    
-    return orderId;
+    try {
+        const response = await fetch(`${ORDERS_API}?action=create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+        });
+        const data = await response.json();
+        
+        console.log('Order creation response:', data);
+        
+        if (data.success) {
+            return data.order_id;
+        } else {
+            console.error('Failed to create order:', data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error creating order:', error);
+        return null;
+    }
 }
 
 // ============================================
-// CREATE ORDER AFTER SUCCESSFUL PAYMENT
+// CREATE LOCAL ORDER (localStorage backup)
 // ============================================
-function createOrderAfterPayment() {
+function createLocalOrder(orderId, paymentMethod) {
     const totalAmount = getTotalAmount();
-    const orderId = Math.floor(Math.random() * 10000) + 1000;
     
     const newOrder = {
         id: orderId,
@@ -575,11 +506,14 @@ function createOrderAfterPayment() {
         title: orderData?.title || "Web Development",
         packageName: orderData?.packageName || "Premium Package",
         amount: totalAmount,
-        status: "In Progress",
+        status: "awaiting_requirements",
         date: new Date().toISOString(),
         seller: orderData?.seller || "Vector Aura",
         sellerId: orderData?.sellerId,
-        paymentMethod: 'wallet'
+        paymentMethod: paymentMethod,
+        delivery: orderData?.delivery,
+        revisions: orderData?.revisions,
+        image: orderData?.image
     };
     
     let orders = JSON.parse(localStorage.getItem('userOrders') || '[]');
@@ -587,8 +521,6 @@ function createOrderAfterPayment() {
     localStorage.setItem('userOrders', JSON.stringify(orders));
     
     localStorage.removeItem('checkoutOrder');
-    
-    return orderId;
 }
 
 // ============================================
@@ -619,20 +551,27 @@ function initPayButton() {
         
         setTimeout(async () => {
             try {
-                let orderId;
+                // إنشاء الطلب في قاعدة البيانات
+                let dbOrderId = await createOrderInDatabase(selectedMethod);
+                
+                console.log('Database order ID:', dbOrderId);
+                
+                if (!dbOrderId) {
+                    dbOrderId = Math.floor(Math.random() * 10000) + 1000;
+                    console.log('Using fallback order ID:', dbOrderId);
+                }
+                
+                createLocalOrder(dbOrderId, selectedMethod);
                 
                 if (selectedMethod === 'wallet') {
-                    orderId = createOrderAfterPayment();
                     await loadWalletBalance();
-                } else {
-                    orderId = executeNonWalletPayment();
                 }
                 
                 payBtn.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful!';
                 payBtn.classList.add('success');
                 
                 setTimeout(() => {
-                    window.location.href = `order-tracking.html?id=${orderId}`;
+                    window.location.href = `order-tracking.html?id=${dbOrderId}`;
                 }, 1500);
                 
             } catch (error) {
@@ -725,26 +664,13 @@ function escapeHtml(str) {
 }
 
 // ============================================
-// CHECK IF USER HAS WALLET PIN
-// ============================================
-async function checkWalletPinStatus() {
-    try {
-        const response = await fetch(`${WALLET_API}?action=get_data`);
-        const data = await response.json();
-        return data.has_pin || false;
-    } catch (error) {
-        return false;
-    }
-}
-
-// ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     fetchUserAvatar();
     console.log('Checkout page loaded');
     loadUserData();
-    await loadOrderFromDatabase();
+    loadOrderFromStorage();
     await loadWalletBalance();
     loadSavedData();
     initPaymentMethods();

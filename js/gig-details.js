@@ -42,6 +42,7 @@ async function fetchUserData() {
         console.error('Error fetching user:', error);
     }
 }
+
 // ── FETCH GIG FROM DB ─────────────────────────────────────────
 async function fetchGigDetails() {
     const gigId = new URLSearchParams(window.location.search).get('id');
@@ -69,41 +70,31 @@ async function fetchGigDetails() {
 function loadPage() {
     if (!gig) return;
 
-    // Title
     document.getElementById('title').innerText = gig.title;
-
-    // Seller
     document.getElementById('seller').innerText = gig.seller;
     document.getElementById('avatar').src = gig.avatar;
-
         
-    // Seller level badge
     const levelNames = { 1: 'New Seller', 2: 'Professional', 3: 'Expert' };
     document.getElementById('levelBadge').innerText = levelNames[gig.sellerLevel] || 'Seller';
 
-    // Rating
     document.getElementById('gig-rating-container').innerHTML = `
         <div class="gig-stars">${getGigRatingStars(gig.gigRating)}</div>
         <span class="gig-rating-value">${Number(gig.gigRating || 0).toFixed(1)}</span>
         <span class="gig-review-count">(${Number(gig.gigReviewCount || 0)} reviews)</span>
     `;
 
-    // Description
     document.getElementById('desc').innerHTML = gig.desc
         ? `<p style="margin-bottom:15px;">${escapeHtml(gig.desc)}</p>`
         : '<p>No description available.</p>';
 
-    // Gallery
     initGallery();
 
-    // Packages
     const availableTabs = ['basic', 'standard', 'premium'].filter(t => gig.packages && gig.packages[t]);
     if (availableTabs.length === 0) {
         showGigError('This gig has no packages yet');
         return;
     }
 
-    // Hide tabs that don't exist
     ['basic', 'standard', 'premium'].forEach(type => {
         const tab = document.getElementById(`tab-${type}`);
         if (tab) tab.style.display = availableTabs.includes(type) ? '' : 'none';
@@ -171,16 +162,55 @@ function buy() {
     if (!gig || !gig.packages || !gig.packages[currentTab]) return;
 
     const selectedPackage = gig.packages[currentTab];
+    
+    let gigImage = '';
+    if (gig.images && gig.images.length > 0) {
+        gigImage = gig.images[0];
+    } else {
+        gigImage = '/Taskly/images/default-gig.jpg';
+    }
+    
+    let deliveryText = '';
+    if (selectedPackage.delivery) {
+        deliveryText = selectedPackage.delivery;
+    } else if (selectedPackage.delivery_time_days) {
+        const days = parseInt(selectedPackage.delivery_time_days);
+        deliveryText = `${days} Day${days > 1 ? 's' : ''} Delivery`;
+    } else {
+        deliveryText = 'Standard Delivery';
+    }
+    
+    let revisionsText = '';
+    if (selectedPackage.revisions) {
+        revisionsText = selectedPackage.revisions;
+    } else if (selectedPackage.revisions_allowed !== undefined) {
+        const revs = parseInt(selectedPackage.revisions_allowed);
+        if (revs === 999 || revs === 0) {
+            revisionsText = 'Unlimited Revisions';
+        } else {
+            revisionsText = `${revs} Revision${revs > 1 ? 's' : ''}`;
+        }
+    } else {
+        revisionsText = '2 Revisions';
+    }
+    
+    const features = Array.isArray(selectedPackage.features) ? selectedPackage.features : [];
+    
     const orderData = {
         gigId:       gig.id,
         packageId:   selectedPackage.id,
         title:       gig.title,
         packageName: selectedPackage.name,
-        price:       selectedPackage.price,
+        price:       parseFloat(selectedPackage.price),
         seller:      gig.seller,
-        sellerId:    gig.sellerId
+        sellerId:    gig.sellerId,
+        image:       gigImage,
+        delivery:    deliveryText,
+        revisions:   revisionsText,
+        features:    features
     };
 
+    console.log('Order data saved:', orderData);
     localStorage.setItem('checkoutOrder', JSON.stringify(orderData));
     window.location.href = 'checkout.html';
 }
@@ -296,7 +326,6 @@ function escapeHtml(value) {
     }[char]));
 }
 
-// Close report modal on backdrop click or Escape
 window.onclick = (e) => {
     if (e.target === document.getElementById('reportModal')) closeReportModal();
 };
