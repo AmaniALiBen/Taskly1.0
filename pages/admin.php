@@ -50,25 +50,15 @@
     <section id="users-tab" class="tab-content active">
         <div class="page-header">
             <h1>Manage Users</h1>
-            <p>Manage admins, sellers, and customers</p>
+            <p>Manage sellers, and customers</p>
         </div>
         
         <div class="user-tabs">
-            <button class="user-tab active" data-type="admins" onclick="filterUsers('admins')">Admins</button>
             <button class="user-tab" data-type="sellers" onclick="filterUsers('sellers')">Sellers</button>
             <button class="user-tab" data-type="customers" onclick="filterUsers('customers')">Customers</button>
         </div>
         
-       
-        <!-- Add Admin Only Panel (ميزة جديدة) -->
-<div class="add-admin-only-panel" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; margin-bottom: 28px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
-    <input type="text" id="adminOnlyName" class="add-user-input" placeholder="Admin full name">
-    <input type="email" id="adminOnlyEmail" class="add-user-input" placeholder="Admin email">
-    <input type="password" id="adminOnlyPassword" class="add-user-input" placeholder="Password">
-    <button class="btn-primary" onclick="addAdminOnly()">
-        <i class="fas fa-user-shield"></i> Add Admin
-    </button>
-</div>
+
         <div id="usersList" class="users-list"></div>
     </section>
     
@@ -367,9 +357,9 @@
     </div>
 </div>
 
-<!-- <script src="../js/admin.js"></script> -->
+<script src="../js/admin.js"></script>
 <script src="../js/admin-categories.js"></script>
-
+<script src="../js/admin-users.js"></script>
 <script src="../js/admin-disputes.js"></script>
 </body>
 </html>
