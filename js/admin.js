@@ -10,10 +10,12 @@ let pendingDeleteAction = null;
 let reportsData = [];
 
 // ========== CONFIRM MODAL ==========
-function showConfirmModal(title, message, onConfirm) {
+function showConfirmModal(title, message, onConfirm, confirmText = 'Confirm') {
     pendingDeleteAction = onConfirm;
     document.getElementById('confirmModalTitle').innerText = title;
     document.getElementById('confirmModalMessage').innerText = message;
+    const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+    if (confirmBtn) confirmBtn.innerText = confirmText;
     document.getElementById('confirmModal').classList.add('active');
 }
 
