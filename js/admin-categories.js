@@ -337,9 +337,21 @@ function initCategoriesTab() {
     loadCategories();
 }
 
-// Also call on page load in case categories tab is active
-setTimeout(() => {
-    if (document.getElementById('categories-tab') && document.getElementById('categories-tab').classList.contains('active')) {
+// استدعاء التحميل بعد تحميل الصفحة مباشرة
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
         initCategoriesTab();
+    });
+} else {
+    initCategoriesTab();
+}
+
+// أيضاً إذا كان التبويب يتم تفعيله لاحقاً، استمع للنقرات
+document.addEventListener('click', function(e) {
+    // إذا تم النقر على أي عنصر يمكنه تغيير التبويب
+    if (e.target.closest('.tab-btn') || e.target.closest('.nav-item')) {
+        setTimeout(() => {
+            checkAndInitCategories();
+        }, 150);
     }
-}, 100);
+});

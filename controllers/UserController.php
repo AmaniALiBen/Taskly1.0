@@ -91,11 +91,16 @@ switch ($action) {
         $db->beginTransaction();
         
         try {
-            // 1. Get all active orders (not completed or cancelled)
+            // 1. Get all active orders with buyer and seller details
             $stmt = $db->prepare("
-                SELECT o.*, gp.price 
+                SELECT o.*, gp.price, g.title as gig_title, 
+                       buyer.id as buyer_id, buyer.name as buyer_name, buyer.email as buyer_email,
+                       seller.id as seller_id, seller.name as seller_name, seller.email as seller_email
                 FROM orders o
                 JOIN gig_packages gp ON gp.id = o.package_id
+                JOIN gigs g ON gp.gig_id = g.id
+                JOIN users buyer ON o.buyer_id = buyer.id
+                JOIN users seller ON o.seller_id = seller.id
                 WHERE (o.buyer_id = ? OR o.seller_id = ?) 
                 AND o.status NOT IN ('completed', 'cancelled')
             ");
@@ -104,15 +109,21 @@ switch ($action) {
             
             foreach ($activeOrders as $order) {
                 if ($user['role'] === 'seller') {
-                    // Seller deleted: refund buyer
+                    // ✅ Seller deleted: refund buyer
                     $walletModel->addBalance($order['buyer_id'], $order['price']);
                     
                     // Update order status to cancelled
                     $stmt2 = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?");
                     $stmt2->execute([$order['id']]);
                     
-                    // Send email notification
-                    EmailHelper::sendRefundEmail($user['email'], $user['name'], $order['id'], $order['price']);
+                    // ✅ Send email to BUYER (not seller)
+                    EmailHelper::sendSellerDeletedEmail(
+                        $order['buyer_email'],      // buyer email
+                        $order['buyer_name'],       // buyer name
+                        $order['id'],               // order id
+                        $order['price'],            // refund amount
+                        $order['gig_title']         // gig title
+                    );
                     
                 } elseif ($user['role'] === 'buyer') {
                     // Buyer deleted: release payment to seller
@@ -122,14 +133,20 @@ switch ($action) {
                     $stmt2 = $db->prepare("UPDATE orders SET status = 'completed' WHERE id = ?");
                     $stmt2->execute([$order['id']]);
                     
-                    // Send email notification
-                    EmailHelper::sendPaymentReleasedEmail($user['email'], $user['name'], $order['id'], $order['price']);
+                    // Send email to SELLER
+                    EmailHelper::sendBuyerDeletedEmail(
+                        $order['seller_email'],
+                        $order['seller_name'],
+                        $order['id'],
+                        $order['price'],
+                        $order['gig_title']
+                    );
                 }
             }
             
             // 2. If seller, soft delete all their gigs
             if ($user['role'] === 'seller') {
-                $stmt = $db->prepare("UPDATE gigs SET is_deleted = 1 WHERE seller_id = ?");
+                $stmt = $db->prepare("UPDATE gigs SET is_deleted = 1, is_active = 0 WHERE seller_id = ?");
                 $stmt->execute([$userId]);
             }
             
@@ -140,7 +157,7 @@ switch ($action) {
             // 4. Soft delete the user
             $result = $userModel->deleteUser($userId);
             
-            // 5. Send email notification
+            // 5. Send email to the deleted user (notification)
             EmailHelper::sendAccountDeletedEmail($user['email'], $user['name']);
             
             $db->commit();

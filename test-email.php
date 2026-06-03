@@ -14,12 +14,21 @@ echo "<h2>Testing Email - Alternative Method</h2>";
 try {
     $mail = new PHPMailer(true);
     
+    // ✅ حل مشكلة SSL
+    $mail->SMTPOptions = array(
+        'ssl' => array(
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true
+        )
+    );
+    
     $mail->SMTPDebug = 2;
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';
     $mail->SMTPAuth   = true;
     $mail->Username   = 'Tasklymarketplace@gmail.com';
-    $mail->Password   = 'aiugaanbftjuotpv';  // Try your regular password
+    $mail->Password   = 'aiugaanbftjuotpv';
     $mail->SMTPSecure = 'tls';
     $mail->Port       = 587;
     $mail->setFrom('Tasklymarketplace@gmail.com', 'Taskly Test');
