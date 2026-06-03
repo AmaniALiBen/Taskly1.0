@@ -744,22 +744,6 @@ document.getElementById('confirmVerifyPinBtn')?.addEventListener('click', async 
 
 
 // ========================================
-// ORDERS
-// ========================================
-function renderOrders() {
-    const container = document.getElementById('ordersList');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="empty-message" style="text-align: center; padding: 60px;">
-            <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.5;"></i>
-            <p>No orders yet</p>
-            <span>When you receive orders, they'll appear here</span>
-        </div>
-    `;
-}
-
-// ========================================
 // TAB SWITCHING
 // ========================================
 function switchTab(tabName, event) {
@@ -772,6 +756,7 @@ function switchTab(tabName, event) {
 
     if (tabName === 'wallet') loadWalletData();
     if (tabName === 'gigs') loadGigs();
+    if (tabName === 'orders') loadSellerOrders();
 }
 
 // ========================================
