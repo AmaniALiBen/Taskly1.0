@@ -11,6 +11,8 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/WalletModel.php';
+
 
 $userId = $_SESSION['user_id'];
 $role = $_SESSION['user_role'] ?? 'buyer';
@@ -55,5 +57,11 @@ if ($role === 'seller') {
     $response['about_me'] = $sellerDetails['about_me'] ?? '';
     $response['level'] = $sellerDetails['level'] ?? 'raising star';
 }
+
+$walletModel = new WalletModel($conn);
+
+$walletData = $walletModel->getWalletData($userId);
+$response['wallet_balance'] = $walletData ? (float)$walletData['balance'] : 0;
+$response['has_wallet_pin'] = $walletData && !empty($walletData['wallet_pin_hash']);
 
 echo json_encode($response);

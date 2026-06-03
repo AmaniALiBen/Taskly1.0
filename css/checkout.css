@@ -409,3 +409,170 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ============================================
+   WALLET PIN MODAL STYLES
+   ============================================ */
+.pin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(12px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.pin-modal-overlay.active {
+    display: flex;
+}
+
+.pin-modal-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.75rem;
+    width: 90%;
+    max-width: 450px;
+    position: relative;
+    animation: modalFadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.pin-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.pin-modal-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.pin-modal-header {
+    text-align: center;
+    padding: 30px 30px 20px 30px;
+}
+
+.pin-modal-icon {
+    width: 65px;
+    height: 65px;
+    background: rgba(124, 58, 237, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+}
+
+.pin-modal-header h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.pin-modal-header h2 span {
+    color: var(--primary-color);
+}
+
+.pin-modal-header p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.pin-modal-body {
+    padding: 0 30px;
+}
+
+.pin-input {
+    text-align: center;
+    letter-spacing: 5px;
+    font-size: 1.2rem;
+    width: 100%;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: white;
+    outline: none;
+}
+
+.pin-input:focus {
+    border-color: var(--primary-color);
+}
+
+.pin-modal-footer {
+    display: flex;
+    gap: 15px;
+    padding: 25px 30px 30px 30px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.pin-modal-footer button {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.pin-modal-footer .btn-outline {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+}
+
+.pin-modal-footer .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: white;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.pin-modal-footer .btn-primary {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.pin-modal-footer .btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}

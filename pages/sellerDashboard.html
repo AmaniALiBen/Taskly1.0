@@ -26,10 +26,7 @@
 
 <div class="dashboard-container">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
-        
-        <!-- Profile Section in Sidebar -->
         <div class="sidebar-profile">
             <div class="profile-avatar-sidebar" id="sidebarAvatar">A</div>
             <div class="profile-info-sidebar">
@@ -38,35 +35,31 @@
             </div>
         </div>
         
-        <!-- Sidebar Navigation -->
         <div class="sidebar-nav">
             <div class="nav-section">
                 <div class="nav-section-title">MAIN MENU</div>
-                <button class="nav-item active" onclick="switchTab('profile')">
+                <button class="nav-item active" onclick="switchTab('profile', event)">
                     <i class="fas fa-user"></i> <span>Profile</span>
                 </button>
-                <button class="nav-item" onclick="switchTab('wallet')">
+                <button class="nav-item" onclick="switchTab('wallet', event)">
                     <i class="fas fa-wallet"></i> <span>Billings & Earnings</span>
                 </button>
-                <button class="nav-item" onclick="switchTab('gigs')">
+                <button class="nav-item" onclick="switchTab('gigs', event)">
                     <i class="fas fa-briefcase"></i> <span>Manage Gigs</span>
                 </button>
-                <button class="nav-item" onclick="switchTab('orders')">
+                <button class="nav-item" onclick="switchTab('orders', event)">
                     <i class="fas fa-shopping-cart"></i> <span>Orders</span>
                 </button>
             </div>
         </div>
         
-       
-        
         <div class="sidebar-footer">
-    <button class="footer-item" onclick="handleLogout()">
-        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-    </button>
-</div>
+            <button class="footer-item" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+            </button>
+        </div>
     </aside>
     
-    <!-- Main Content -->
     <main class="main-content">
         
         <!-- ========== PROFILE TAB ========== -->
@@ -76,7 +69,8 @@
                     <div class="section-title"><i class="fas fa-user-circle"></i> Personal Information</div>
                     <div class="section-subtitle">Manage your account details and preferences</div>
                 </div>
-<button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Profile</button>            </div>
+                <button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Profile</button>
+            </div>
             
             <div class="profile-row">
                 <div class="avatar-upload">
@@ -102,19 +96,19 @@
                 <div class="input-group">
                     <label class="input-label">Country</label>
                     <select id="profCountry" class="luxury-input custom-select">
-    <option value="">Loading countries...</option>
-</select>
+                        <option value="">Loading countries...</option>
+                    </select>
                 </div>
             </div>
 
             <div class="input-group">
                 <label class="input-label">Professional Summary <span class="char-counter" id="bioCounter">0/500</span></label>
-                <textarea id="profBio" class="luxury-input auto-resize" maxlength="500" placeholder="Tell buyers about yourself and your expertise...">Software developer specialized in UI/UX and web interfaces. I have 5+ years of experience building modern web applications and working with international clients.</textarea>
+                <textarea id="profBio" class="luxury-input auto-resize" maxlength="500" placeholder="Tell buyers about yourself and your expertise..."></textarea>
             </div>
 
             <div class="input-group">
                 <label class="input-label">Skills <small>(Separate with commas)</small></label>
-                <textarea id="profSkills" class="luxury-input skills-field" placeholder="UI/UX Design, React.js, Node.js, Python">UI/UX Design, React.js, Node.js, Python, Tailwind CSS, Figma</textarea>
+                <textarea id="profSkills" class="luxury-input skills-field" placeholder="UI/UX Design, React.js, Node.js, Python"></textarea>
             </div>
 
             <div class="input-group">
@@ -122,9 +116,8 @@
                 <div class="languages-container">
                     <div class="lang-select-wrapper">
                         <select id="langSelect" class="luxury-input custom-select">
-    <option value="">-- Select Language --</option>
-
-</select>
+                            <option value="">-- Select Language --</option>
+                        </select>
                         <button type="button" class="btn-add-lang" onclick="addLanguage()">+ Add</button>
                     </div>
                     <div class="lang-tags" id="languagesContainer"></div>
@@ -145,58 +138,71 @@
             </div>
         </section>
 
-        <!-- ========== WALLET TAB ========== -->
-        <section id="wallet-tab" class="tab-content">
-            <div class="section-header">
-                <div>
-                    <div class="section-title"><i class="fas fa-wallet"></i> Billings & Earnings</div>
-                    <div class="section-subtitle">Manage your payouts</div>
+        <!-- ========== WALLET TAB (سحب فقط + PIN) ========== -->
+        <div id="wallet-tab" class="tab-content">
+            <div class="dashboard-card">
+                
+                <!-- شاشة إنشاء PIN لأول مرة -->
+                <div id="noPinScreen" style="display: none; text-align: center; padding: 60px 40px;">
+                    <div style="width: 80px; height: 80px; background: rgba(245, 158, 11, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-shield-alt" style="font-size: 2.5rem; color: #f59e0b;"></i>
+                    </div>
+                    <h3 style="font-size: 1.3rem; margin-bottom: 10px;">Secure Your Wallet</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 25px;">Set a 4-digit PIN to protect your wallet and enable withdrawals</p>
+                    <button class="btn-primary" onclick="openPinModal()">
+                        <i class="fas fa-key"></i> Set Wallet PIN
+                    </button>
                 </div>
-            </div>
-            
-            <div class="wallet-stats">
-                <div class="stat-box">
-                    <div class="stat-label">Available Balance</div>
-                    <div class="stat-number primary" id="availableBalance">$0.00</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Pending Clearance</div>
-                    <div class="stat-number" id="pendingBalance">$0.00</div>
-                </div>
-            </div>
 
-            <div class="two-columns">
-                <div class="input-group">
-                    <label class="input-label">Withdrawal Method</label>
-                    <div class="method-buttons">
-                        <button type="button" class="method-btn" data-method="bank" onclick="setWithdrawMethod('bank')">
-                            <i class="fas fa-university"></i> Bank
-                        </button>
-                        <button type="button" class="method-btn" data-method="paypal" onclick="setWithdrawMethod('paypal')">
-                            <i class="fab fa-paypal"></i> PayPal
+                <!-- المحفظة الطبيعية (سحب فقط) -->
+                <div id="walletNormalScreen" style="display: none;">
+                    <div class="wallet-stats">
+                        <div class="stat-box" style="grid-column: span 2;">
+                            <div class="stat-label">AVAILABLE BALANCE</div>
+                            <div class="stat-number primary" id="availableBalance">$0.00</div>
+                            
+                            <div class="method-buttons">
+                                <button class="method-btn active" data-method="bank" onclick="setWithdrawMethod('bank')">
+                                    <i class="fas fa-university"></i> Bank
+                                </button>
+                                <button class="method-btn" data-method="paypal" onclick="setWithdrawMethod('paypal')">
+                                    <i class="fab fa-paypal"></i> PayPal
+                                </button>
+                            </div>
+                            
+                            <div class="input-group">
+                                <input type="text" id="payoutAccount" class="luxury-input" placeholder="Account / Email">
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="payoutAmount" class="luxury-input" placeholder="Amount" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            </div>
+                            <button class="btn-withdraw" onclick="requestWithdrawal()">Withdraw</button>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة PIN -->
+                    <div class="pin-status-card">
+                        <div class="pin-status-info">
+                            <div class="pin-status-icon set">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="pin-status-text">
+                                <h4>PIN Protected</h4>
+                                <p>Your wallet is secured with a PIN</p>
+                            </div>
+                        </div>
+                        <button class="pin-action-btn" onclick="openPinModal()">
+                            <i class="fas fa-key"></i> Change PIN
                         </button>
                     </div>
+
+                    
                 </div>
-                <div class="input-group">
-                    <label class="input-label" id="methodLabel">IBAN / Account Number</label>
-                    <input type="text" id="payoutAccount" class="luxury-input" placeholder="Enter account details">
-                </div>
+
             </div>
+        </div>
 
-            <div class="two-columns">
-                <div class="input-group">
-                    <label class="input-label">Amount ($)</label>
-                    <input type="number" id="payoutAmount" class="luxury-input" placeholder="0.00">
-                </div>
-                <div class="input-group" style="display: flex; align-items: flex-end;">
-                    <button class="btn-withdraw" onclick="requestWithdrawal()">Withdraw Funds</button>
-                </div>
-            </div>
-
-          
-        </section>
-
-        <!-- ========== GIGS TAB (Manage Gigs) ========== -->
+        <!-- ========== GIGS TAB ========== -->
         <section id="gigs-tab" class="tab-content">
             <div class="manage-container">
                 <div class="page-header-box">
@@ -236,54 +242,52 @@
             </div>
         </section>
 
-    
+        <!-- ========== ORDERS TAB ========== -->
         <section id="orders-tab" class="tab-content">
-             <div class="page-header">
-            <h1>My Sales</h1>
-            <p>Track your orders and earnings</p>
-        </div>
+            <div class="page-header">
+                <h1>My Sales</h1>
+                <p>Track your orders and earnings</p>
+            </div>
 
-        <div class="stats-overview">
-    <div class="stat-card">
-        <i class="fas fa-shopping-cart"></i>
-        <div class="stat-info">
-            <span class="stat-title">Total Orders</span>
-            <span class="stat-number" id="total-orders-card">0</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-clock"></i>
-        <div class="stat-info">
-            <span class="stat-title">In Progress</span>
-            <span class="stat-number" id="active-orders-count">0</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-check-circle"></i>
-        <div class="stat-info">
-            <span class="stat-title">Completed</span>
-            <span class="stat-number" id="completed-count">0</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-hourglass-half"></i>
-        <div class="stat-info">
-            <span class="stat-title">Awaiting Requirements</span>
-            <span class="stat-number" id="awaiting-count">0</span>
-        </div>
-    </div>
-</div>
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <i class="fas fa-shopping-cart"></i>
+                    <div class="stat-info">
+                        <span class="stat-title">Total Orders</span>
+                        <span class="stat-number" id="total-orders-card">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-info">
+                        <span class="stat-title">In Progress</span>
+                        <span class="stat-number" id="active-orders-count">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="stat-info">
+                        <span class="stat-title">Completed</span>
+                        <span class="stat-number" id="completed-count">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-hourglass-half"></i>
+                    <div class="stat-info">
+                        <span class="stat-title">Awaiting Requirements</span>
+                        <span class="stat-number" id="awaiting-count">0</span>
+                    </div>
+                </div>
+            </div>
 
-        <div class="tabs">
-            <div class="tab-item active" onclick="filterOrders('awaiting')">Awaiting Requirements</div>
-            <div class="tab-item" onclick="filterOrders('active')">In Progress</div>
-            <div class="tab-item" onclick="filterOrders('completed')">Completed</div>
-            <div class="tab-item" onclick="filterOrders('cancelled')">Cancelled</div>
-        </div>
+            <div class="tabs">
+                <div class="tab-item active" onclick="filterOrders('awaiting')">Awaiting Requirements</div>
+                <div class="tab-item" onclick="filterOrders('active')">In Progress</div>
+                <div class="tab-item" onclick="filterOrders('completed')">Completed</div>
+                <div class="tab-item" onclick="filterOrders('cancelled')">Cancelled</div>
+            </div>
 
-        <div id="orders-list">
-            <!-- JavaScript will inject cards here -->
-        </div>
+            <div id="orders-list"></div>
         </section>
 
     </main>
@@ -302,7 +306,6 @@
     </div>
 </div>
 
-<div class="toast-container" id="toastContainer"></div>
 <!-- Custom Logout Modal -->
 <div id="logoutModal" class="logout-modal-overlay">
     <div class="logout-modal-card">
@@ -317,6 +320,57 @@
         </div>
     </div>
 </div>
+
+<!-- PIN Modal -->
+<div id="pinModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+        <button class="modal-close" onclick="closePinModal()">&times;</button>
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fas fa-key"></i>
+            </div>
+            <h2 id="pinModalTitle">Set Wallet <span>PIN</span></h2>
+            <p id="pinModalDesc">Create a 4-digit PIN to secure your wallet</p>
+        </div>
+        <div class="modal-form">
+            <div id="currentPinGroup" style="display: none;">
+                <div class="input-group">
+                    <input type="password" id="currentPin" placeholder="Current PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+            </div>
+            <div class="input-group">
+                <input type="password" id="newPin" placeholder="New 4-digit PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+            </div>
+            <div class="input-group">
+                <input type="password" id="confirmPin" placeholder="Confirm PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+            </div>
+            <button type="button" class="modal-btn" id="savePinBtn">Save PIN</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== VERIFY PIN MODAL (للسحب) ========== -->
+<div id="verifyPinModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+        <button class="modal-close" onclick="closeVerifyPinModal()">&times;</button>
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>Verify <span>PIN</span></h2>
+            <p>Enter your 4-digit PIN to confirm withdrawal</p>
+        </div>
+        <div class="modal-form">
+            <div class="input-group">
+                <input type="password" id="verifyPinInput" class="luxury-input" placeholder="Enter your PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem;">
+            </div>
+            <button type="button" class="modal-btn" id="confirmVerifyPinBtn">Confirm Withdrawal</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
 <script src="../js/sellerDashboard.js"></script>
 <script src="../js/seller-gigs.js"></script>
 <script src="../js/seller-orders.js"></script>

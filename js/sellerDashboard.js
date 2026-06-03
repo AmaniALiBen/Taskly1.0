@@ -1,17 +1,11 @@
 // ========================================
-// SELLER DASHBOARD
-// Handles: profile, wallet, languages, tabs, avatar
+// SELLER DASHBOARD - COMPLETE
+// Handles: profile, wallet (with PIN), languages, tabs, avatar
 // Gig logic is in seller-gigs.js
 // Orders logic is in seller-orders.js
 // ========================================
 
 let sellerData = {
-    name: "",
-    email: "",
-    bio: "",
-    skills: "",
-    country: "",
-    languages: [],
     name: "",
     email: "",
     bio: "",
@@ -26,15 +20,21 @@ let sellerData = {
 };
 
 let currentWithdrawMethod = 'bank';
+let allLanguages = [];
+
+// ========================================
+// WALLET API ENDPOINT
+// ========================================
+const WALLET_API = '/Taskly/controllers/WalletController.php';
 
 // ========================================
 // INITIALIZATION
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Check URL parameter to open specific tab
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     
+    loadCountries();
     fetchUserData();
     updateStats();
     loadProfile();
@@ -46,13 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSidebarProfile();
     renderOrders();
     renderTransactions();
-    loadGigs(); // defined in seller-gigs.js
+    loadGigs();
     
-    // Switch to gigs tab if parameter exists (increased timeout to ensure DOM is ready)
     if (tabParam === 'gigs') {
         setTimeout(() => {
             switchTab('gigs');
-            // Remove the tab parameter from URL to avoid re-triggering on refresh
             window.history.replaceState({}, document.title, window.location.pathname);
         }, 300);
     }
@@ -69,19 +67,15 @@ async function fetchUserData() {
         console.log('User data from server:', data);
         
         if (data.loggedIn) {
-            // التحقق من أن المستخدم بائع
             if (data.role !== 'seller') {
-                console.log('User is not a seller, redirecting...');
                 window.location.href = '../index.html';
                 return;
             }
             
-            // ✅ تحديث الاسم في sellerData
             sellerData.name = data.username;
             sellerData.email = data.email;
             sellerData.role = data.role;
             
-            // ✅ تحديث الاسم في السايدبار
             const sidebarName = document.getElementById('sidebarName');
             const profileEmail = document.getElementById('profileEmail');
             const profName = document.getElementById('profName');
@@ -90,25 +84,22 @@ async function fetchUserData() {
             const navAvatar = document.querySelector('.nav-avatar-circle');
             const avatarPreview = document.getElementById('avatarPreview');
             
-            // ✅ تحديث الاسم
             if (sidebarName) sidebarName.innerText = data.username;
             if (profileEmail) profileEmail.innerText = data.email;
             if (profName) profName.value = data.username;
             if (profEmail) profEmail.value = data.email;
             
-            // ✅ تحديث الصورة الشخصية
             if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
                 const imgUrl = data.avatar;
                 [sidebarAvatar, navAvatar, avatarPreview].forEach(el => {
                     if (el) {
-                        el.style.backgroundImage    = `url('${imgUrl}')`;
-                        el.style.backgroundSize     = 'cover';
+                        el.style.backgroundImage = `url('${imgUrl}')`;
+                        el.style.backgroundSize = 'cover';
                         el.style.backgroundPosition = 'center';
                         el.innerText = '';
                     }
                 });
             } else {
-                // ✅ صورة افتراضية تعتمد على أول حرف من الاسم
                 const firstLetter = data.username.charAt(0).toUpperCase();
                 if (sidebarAvatar) {
                     sidebarAvatar.style.backgroundImage = 'none';
@@ -136,79 +127,56 @@ async function fetchUserData() {
                 }
             }
             
-            
-            // تحديث باقي البيانات
-if (data.seller_details) {
-    const profBio = document.getElementById('profBio');       // experience
-    const profSkills = document.getElementById('profSkills'); // about_me
-    const profCountry = document.getElementById('profCountry');
-    
-    // experience → Professional Summary
-    if (profBio && data.seller_details.experience) {
-        profBio.value = data.seller_details.experience;
-    }
-    
-    // about_me → Skills
-    if (profSkills && data.seller_details.about_me) {
-        profSkills.value = data.seller_details.about_me;
-    }
-    
-    if (profCountry && data.country) {
-        for (let i = 0; i < profCountry.options.length; i++) {
-            if (profCountry.options[i].text === data.country) {
-                profCountry.selectedIndex = i;
-                break;
+            if (data.seller_details) {
+                const profBio = document.getElementById('profBio');
+                const profSkills = document.getElementById('profSkills');
+                const profCountry = document.getElementById('profCountry');
+                
+                if (profBio && data.seller_details.experience) {
+                    profBio.value = data.seller_details.experience;
+                }
+                if (profSkills && data.seller_details.about_me) {
+                    profSkills.value = data.seller_details.about_me;
+                }
+                if (profCountry && data.country) {
+                    for (let i = 0; i < profCountry.options.length; i++) {
+                        if (profCountry.options[i].text === data.country) {
+                            profCountry.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
             }
-        }
-    }
-}
             
-            // تحديث اللغات
             if (data.languages && data.languages.length > 0) {
                 sellerData.languages = data.languages.map(lang => lang.name);
                 renderLanguages();
             }
             
             updateStats();
-            
+            loadWalletData();
         } else {
-            console.log('User not logged in, redirecting...');
             window.location.href = '../index.html';
         }
     } catch (error) {
         console.error('Error fetching user:', error);
     }
 }
+
 // ========================================
 // STATS
 // ========================================
-document.addEventListener('DOMContentLoaded', () => {
-    loadCountries();
-    fetchUserData();
-    updateStats();
-    loadProfile();
-    setupAvatarUpload();
-    renderLanguages();
-    setupMethodButtons();
-    setupCharCounter();
-    setupAutoResize();
-    updateSidebarProfile();
-    renderGigs();       // يعرض واجهة إدارة الخدمات
-    renderOrders();     // يعرض واجهة الطلبات
-    renderTransactions();
-});
-
 function updateStats() {
     const availableBalance = document.getElementById('availableBalance');
-    const pendingBalance   = document.getElementById('pendingBalance');
+    const pendingBalance = document.getElementById('pendingBalance');
     if (availableBalance) availableBalance.innerText = `$${sellerData.balance.toLocaleString()}`;
-    if (pendingBalance)   pendingBalance.innerText   = `$${sellerData.pending.toLocaleString()}`;
+    if (pendingBalance) pendingBalance.innerText = `$${sellerData.pending.toLocaleString()}`;
 }
 
 function updateSidebarProfile() {
-    const sidebarName   = document.getElementById('sidebarName');
+    const sidebarName = document.getElementById('sidebarName');
     const sidebarAvatar = document.getElementById('sidebarAvatar');
-    if (sidebarName)   sidebarName.innerText   = sellerData.name;
+    if (sidebarName) sidebarName.innerText = sellerData.name;
     if (sidebarAvatar) sidebarAvatar.innerText = sellerData.name.charAt(0);
 }
 
@@ -216,35 +184,29 @@ function updateSidebarProfile() {
 // PROFILE
 // ========================================
 function loadProfile() {
-    const profName    = document.getElementById('profName');
-    const profEmail   = document.getElementById('profEmail');
-    const profBio     = document.getElementById('profBio');
-    const profSkills  = document.getElementById('profSkills');
+    const profName = document.getElementById('profName');
+    const profEmail = document.getElementById('profEmail');
+    const profBio = document.getElementById('profBio');
+    const profSkills = document.getElementById('profSkills');
     const profCountry = document.getElementById('profCountry');
 
-    if (profName)    profName.value    = sellerData.name;
-    if (profEmail)   profEmail.value   = sellerData.email;
-    if (profBio)     profBio.value     = sellerData.bio;
-    if (profSkills)  profSkills.value  = sellerData.skills;
+    if (profName) profName.value = sellerData.name;
+    if (profEmail) profEmail.value = sellerData.email;
+    if (profBio) profBio.value = sellerData.bio;
+    if (profSkills) profSkills.value = sellerData.skills;
     if (profCountry) profCountry.value = sellerData.country;
 
     updateCharCounter();
     setTimeout(() => {
-        if (profBio)    autoResize(profBio);
+        if (profBio) autoResize(profBio);
         if (profSkills) autoResize(profSkills);
     }, 100);
 }
 
-// ========================================
-// SAVE PROFILE TO DATABASE
-// ========================================
-// ========================================
-// SAVE PROFILE TO DATABASE (WITH IMAGE)
-// ========================================
 async function saveProfile() {
     const name = document.getElementById('profName')?.value.trim();
-    const summary = document.getElementById('profBio')?.value;     // summary → experience
-    const skills = document.getElementById('profSkills')?.value;   // skills → about_me
+    const summary = document.getElementById('profBio')?.value;
+    const skills = document.getElementById('profSkills')?.value;
     const country = document.getElementById('profCountry')?.value;
     const avatarInput = document.getElementById('avatarInput');
     const avatarFile = avatarInput?.files[0];
@@ -266,8 +228,8 @@ async function saveProfile() {
         const formData = new FormData();
         formData.append('action', 'updateProfile');
         formData.append('name', name);
-        formData.append('summary', summary);   // summary → experience
-        formData.append('skills', skills);     // skills → about_me
+        formData.append('summary', summary);
+        formData.append('skills', skills);
         formData.append('country', country);
         
         if (avatarFile) {
@@ -280,7 +242,6 @@ async function saveProfile() {
         });
         
         const data = await response.json();
-        console.log('Update response:', data);
         
         if (data.success) {
             showToast('Profile saved successfully!', 'success');
@@ -319,9 +280,6 @@ async function saveProfile() {
     }
 }
 
-// ========================================
-// UPDATE PASSWORD - FIXED
-// ========================================
 async function updatePassword() {
     const oldPass = document.getElementById('oldPass')?.value;
     const newPass = document.getElementById('newPass')?.value;
@@ -362,11 +320,9 @@ async function updatePassword() {
         });
         
         const data = await response.json();
-        console.log('Password update response:', data);
         
         if (data.success) {
             showToast("Password updated successfully!", "success");
-            // تفريغ الحقول
             document.getElementById('oldPass').value = '';
             document.getElementById('newPass').value = '';
             document.getElementById('confirmPass').value = '';
@@ -385,7 +341,7 @@ async function updatePassword() {
 }
 
 // ========================================
-// CHAR COUNTER
+// CHAR COUNTER & AUTO RESIZE
 // ========================================
 function setupCharCounter() {
     const bioTextarea = document.getElementById('profBio');
@@ -394,7 +350,7 @@ function setupCharCounter() {
 
 function updateCharCounter() {
     const bioTextarea = document.getElementById('profBio');
-    const counter     = document.getElementById('bioCounter');
+    const counter = document.getElementById('bioCounter');
     if (!bioTextarea || !counter) return;
 
     const length = bioTextarea.value.length;
@@ -402,13 +358,10 @@ function updateCharCounter() {
     counter.style.color = length > 480 ? '#ef4444' : length > 450 ? '#f59e0b' : '#6b7280';
 }
 
-// ========================================
-// AUTO RESIZE
-// ========================================
 function setupAutoResize() {
-    const bioTextarea    = document.getElementById('profBio');
+    const bioTextarea = document.getElementById('profBio');
     const skillsTextarea = document.getElementById('profSkills');
-    if (bioTextarea)    bioTextarea.addEventListener('input',    function() { autoResize(this); });
+    if (bioTextarea) bioTextarea.addEventListener('input', function() { autoResize(this); });
     if (skillsTextarea) skillsTextarea.addEventListener('input', function() { autoResize(this); });
 }
 
@@ -444,8 +397,6 @@ function addLanguage() {
     const languageId = select.value;
     const languageName = selectedOption?.text;
     
-    console.log('Selected - ID:', languageId, 'Name:', languageName);
-    
     if (!languageId || !languageName || languageId === "") {
         showToast("Please select a language", "error");
         return;
@@ -456,13 +407,10 @@ function addLanguage() {
         return;
     }
     
-    // أضف اسم اللغة وليس ID
     sellerData.languages.push(languageName);
     renderLanguages();
     select.value = "";
     showToast(`Added ${languageName}`, "success");
-    
-    // حفظ التغييرات في قاعدة البيانات
     updateSellerLanguages();
 }
 
@@ -470,20 +418,191 @@ function removeLanguage(language) {
     sellerData.languages = sellerData.languages.filter(l => l !== language);
     renderLanguages();
     showToast(`Removed ${language}`, "success");
-    
-    // حفظ التغييرات في قاعدة البيانات
     updateSellerLanguages();
 }
 
+async function updateSellerLanguages() {
+    const languageIds = sellerData.languages.map(langName => {
+        const found = allLanguages.find(l => l.name === langName);
+        return found ? found.id : null;
+    }).filter(id => id !== null);
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateLanguages.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ languages: languageIds })
+        });
+        
+        const data = await response.json();
+        if (!data.success) {
+            showToast(data.message || 'Failed to update languages', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating languages:', error);
+    }
+}
+
 // ========================================
-// WALLET & WITHDRAWAL
+// WALLET & PIN FUNCTIONS
+// ========================================
+
+async function loadWalletData() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data`);
+        const data = await response.json();
+        
+        if (data.success) {
+            sellerData.balance = data.balance;
+            
+            const balanceEl = document.getElementById('availableBalance');
+            if (balanceEl) balanceEl.innerText = `$${data.balance.toFixed(2)}`;
+            
+            const noPinScreen = document.getElementById('noPinScreen');
+            const walletNormalScreen = document.getElementById('walletNormalScreen');
+            
+            if (data.has_pin) {
+                if (noPinScreen) noPinScreen.style.display = 'none';
+                if (walletNormalScreen) walletNormalScreen.style.display = 'block';
+            } else {
+                if (noPinScreen) noPinScreen.style.display = 'block';
+                if (walletNormalScreen) walletNormalScreen.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading wallet:', error);
+    }
+}
+
+function openPinModal() {
+    fetch(`${WALLET_API}?action=get_data`)
+        .then(res => res.json())
+        .then(data => {
+            const title = document.getElementById('pinModalTitle');
+            const desc = document.getElementById('pinModalDesc');
+            const currentPinGroup = document.getElementById('currentPinGroup');
+            const saveBtn = document.getElementById('savePinBtn');
+            
+            if (data.has_pin) {
+                title.innerHTML = 'Change Wallet <span>PIN</span>';
+                desc.innerText = 'Enter your current PIN and choose a new one';
+                currentPinGroup.style.display = 'block';
+                saveBtn.innerText = 'Change PIN';
+            } else {
+                title.innerHTML = 'Set Wallet <span>PIN</span>';
+                desc.innerText = 'Create a 4-digit PIN to secure your wallet';
+                currentPinGroup.style.display = 'none';
+                saveBtn.innerText = 'Set PIN';
+            }
+            
+            document.getElementById('currentPin').value = '';
+            document.getElementById('newPin').value = '';
+            document.getElementById('confirmPin').value = '';
+            
+            document.getElementById('pinModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+}
+
+function closePinModal() {
+    document.getElementById('pinModal').classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+document.getElementById('savePinBtn')?.addEventListener('click', async () => {
+    const newPin = document.getElementById('newPin').value;
+    const confirmPin = document.getElementById('confirmPin').value;
+    const currentPin = document.getElementById('currentPin').value;
+    
+    if (newPin.length !== 4 || !/^\d+$/.test(newPin)) {
+        showToast('PIN must be 4 digits only (numbers 0-9)', 'error');
+        return;
+    }
+    
+    if (newPin !== confirmPin) {
+        showToast('PINs do not match', 'error');
+        return;
+    }
+    
+    const payload = { new_pin: newPin };
+    if (currentPin) payload.current_pin = currentPin;
+    
+    try {
+        const response = await fetch(`${WALLET_API}?action=set_pin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            closePinModal();
+            loadWalletData();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to save PIN', 'error');
+    }
+});
+
+// ========================================
+// DEPOSIT
+// ========================================
+document.getElementById('depositBtn')?.addEventListener('click', async () => {
+    const amountRaw = document.getElementById('depositAmount').value;
+    
+    if (!amountRaw || amountRaw.trim() === '') {
+        showToast('Please enter an amount', 'error');
+        return;
+    }
+    
+    if (!/^\d+$/.test(amountRaw)) {
+        showToast('Please enter numbers only (e.g., 100, 250)', 'error');
+        return;
+    }
+    
+    const amount = parseFloat(amountRaw);
+    
+    if (isNaN(amount) || amount <= 0) {
+        showToast('Please enter a valid positive number', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('depositBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch(`${WALLET_API}?action=deposit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            document.getElementById('depositAmount').value = '';
+            loadWalletData();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('Deposit failed', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+// ========================================
+// WITHDRAW (مع التحقق من PIN)
 // ========================================
 function setWithdrawMethod(method) {
     currentWithdrawMethod = method;
-    const methodLabel = document.getElementById('methodLabel');
-    if (methodLabel) {
-        methodLabel.innerText = method === 'bank' ? 'IBAN / Account Number' : 'PayPal Email Address';
-    }
     document.querySelectorAll('.method-btn').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-method') === method);
     });
@@ -494,50 +613,119 @@ function setupMethodButtons() {
         if (btn.getAttribute('data-method') === 'bank') btn.classList.add('active');
     });
 }
+// متغير لتخزين بيانات السحب المؤقتة
+let pendingWithdrawal = null;
 
-function requestWithdrawal() {
-    const account     = document.getElementById('payoutAccount');
-    const amountInput = document.getElementById('payoutAmount');
-
-    if (!account.value) return showToast('Enter account details', 'error');
-
-    const amount = parseFloat(amountInput.value);
-    if (!amount || amount <= 0)          return showToast('Enter valid amount', 'error');
-    if (amount > sellerData.balance)     return showToast('Insufficient balance', 'error');
-
-    sellerData.balance -= amount;
-    sellerData.transactions.unshift({
-        date:   new Date().toISOString().split('T')[0],
-        amount: amount,
-        type:   'withdrawal',
-        status: 'pending'
-    });
-
-    updateStats();
-    renderTransactions();
-    amountInput.value = '';
-    showToast(`$${amount} withdrawal requested`, 'success');
-}
-
-function renderTransactions() {
-    const container = document.getElementById('transactionsList');
-    if (!container) return;
-
-    if (sellerData.transactions.length === 0) {
-        container.innerHTML = '<div class="empty-message" style="padding:20px;text-align:center;">No transactions yet</div>';
+async function requestWithdrawal() {
+    const account = document.getElementById('payoutAccount').value;
+    const amountRaw = document.getElementById('payoutAmount').value;
+    
+    if (!account.trim()) {
+        showToast('Enter account details', 'error');
         return;
     }
-
-    container.innerHTML = sellerData.transactions.map(t => `
-        <div class="transaction-item">
-            <span class="transaction-date">${t.date}</span>
-            <span class="transaction-amount ${t.type === 'earning' ? 'positive' : 'negative'}">
-                ${t.type === 'earning' ? '+' : '-'}$${t.amount}
-            </span>
-            <span class="transaction-status">${t.status === 'completed' ? 'Completed' : 'Pending'}</span>
-        </div>
-    `).join('');
+    
+    if (!amountRaw || amountRaw.trim() === '') {
+        showToast('Please enter an amount', 'error');
+        return;
+    }
+    
+    if (!/^\d+$/.test(amountRaw)) {
+        showToast('Please enter numbers only (e.g., 100, 250)', 'error');
+        return;
+    }
+    
+    const amount = parseFloat(amountRaw);
+    
+    if (isNaN(amount) || amount <= 0) {
+        showToast('Enter valid amount', 'error');
+        return;
+    }
+    
+    // التحقق من الرصيد أولاً
+    const balanceRes = await fetch(`${WALLET_API}?action=get_data`);
+    const balanceData = await balanceRes.json();
+    
+    if (amount > balanceData.balance) {
+        showToast('Insufficient balance', 'error');
+        return;
+    }
+    
+    if (!balanceData.has_pin) {
+        showToast('Please set a PIN first', 'error');
+        openPinModal();
+        return;
+    }
+    
+    // تخزين بيانات السحب مؤقتاً
+    pendingWithdrawal = {
+        amount: amount,
+        account: account,
+        pin: null
+    };
+    
+    // فتح مودال إدخال PIN
+    document.getElementById('verifyPinModal').classList.add('active');
+    document.getElementById('verifyPinInput').value = '';
+    document.body.style.overflow = 'hidden';
 }
+
+function closeVerifyPinModal() {
+    document.getElementById('verifyPinModal').classList.remove('active');
+    document.getElementById('verifyPinInput').value = '';
+    pendingWithdrawal = null;
+    document.body.style.overflow = 'auto';
+}
+
+// تأكيد السحب بعد إدخال PIN
+document.getElementById('confirmVerifyPinBtn')?.addEventListener('click', async () => {
+    const pin = document.getElementById('verifyPinInput').value;
+    
+    if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
+        showToast('Please enter a valid 4-digit PIN', 'error');
+        return;
+    }
+    
+    if (!pendingWithdrawal) {
+        showToast('Something went wrong. Please try again.', 'error');
+        closeVerifyPinModal();
+        return;
+    }
+    
+    const btn = document.getElementById('confirmVerifyPinBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch(`${WALLET_API}?action=withdraw`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                amount: pendingWithdrawal.amount, 
+                pin: pin, 
+                account: pendingWithdrawal.account 
+            })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            document.getElementById('payoutAmount').value = '';
+            document.getElementById('payoutAccount').value = '';
+            closeVerifyPinModal();
+            loadWalletData();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('Withdrawal failed', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
 
 // ========================================
 // ORDERS
@@ -547,8 +735,8 @@ function renderOrders() {
     if (!container) return;
 
     container.innerHTML = `
-        <div class="empty-message">
-            <i class="fas fa-inbox"></i>
+        <div class="empty-message" style="text-align: center; padding: 60px;">
+            <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.5;"></i>
             <p>No orders yet</p>
             <span>When you receive orders, they'll appear here</span>
         </div>
@@ -566,17 +754,18 @@ function switchTab(tabName, event) {
     if (selectedTab) selectedTab.classList.add('active');
     if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
-    if (tabName === 'gigs') loadGigs(); // defined in seller-gigs.js
+    if (tabName === 'wallet') loadWalletData();
+    if (tabName === 'gigs') loadGigs();
 }
 
 // ========================================
 // AVATAR UPLOAD
 // ========================================
 function setupAvatarUpload() {
-    const avatarInput   = document.getElementById('avatarInput');
+    const avatarInput = document.getElementById('avatarInput');
     const avatarPreview = document.getElementById('avatarPreview');
     const sidebarAvatar = document.getElementById('sidebarAvatar');
-    const navAvatar     = document.querySelector('.nav-avatar-circle');
+    const navAvatar = document.querySelector('.nav-avatar-circle');
 
     if (!avatarInput) return;
 
@@ -589,8 +778,8 @@ function setupAvatarUpload() {
             const url = event.target.result;
             [avatarPreview, sidebarAvatar, navAvatar].forEach(el => {
                 if (el) {
-                    el.style.backgroundImage    = `url(${url})`;
-                    el.style.backgroundSize     = 'cover';
+                    el.style.backgroundImage = `url(${url})`;
+                    el.style.backgroundSize = 'cover';
                     el.style.backgroundPosition = 'center';
                     el.innerText = '';
                 }
@@ -599,6 +788,93 @@ function setupAvatarUpload() {
         };
         reader.readAsDataURL(file);
     };
+}
+
+// ========================================
+// COUNTRIES
+// ========================================
+async function loadCountries() {
+    try {
+        const response = await fetch('/Taskly/controllers/getSellerData.php');
+        const data = await response.json();
+        
+        if (data.success) {
+            const countrySelect = document.getElementById('profCountry');
+            if (countrySelect && data.countries) {
+                countrySelect.innerHTML = '<option value="">Select Country</option>';
+                data.countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.name;
+                    option.textContent = country.name;
+                    countrySelect.appendChild(option);
+                });
+            }
+            
+            if (data.languages) {
+                allLanguages = data.languages;
+                const langSelect = document.getElementById('langSelect');
+                if (langSelect) {
+                    langSelect.innerHTML = '<option value="">-- Select Language --</option>';
+                    data.languages.forEach(language => {
+                        const option = document.createElement('option');
+                        option.value = language.id;
+                        option.textContent = language.name;
+                        langSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading countries:', error);
+    }
+}
+
+// ========================================
+// LOGOUT
+// ========================================
+function openLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+async function confirmLogout() {
+    closeLogoutModal();
+    
+    try {
+        await fetch('/Taskly/controllers/logout.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        localStorage.clear();
+        document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        
+        showToast("Logged out successfully", "success");
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1000);
+    } catch (error) {
+        console.error('Logout error:', error);
+        localStorage.clear();
+        window.location.href = '../index.html';
+    }
+}
+
+async function handleLogout() {
+    openLogoutModal();
 }
 
 // ========================================
@@ -630,264 +906,4 @@ function escapeHtml(str) {
     return str.replace(/[&<>"']/g, m => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     })[m]);
-}
-
-
-// ============================================
-// LOGOUT FUNCTIONALITY
-// ============================================
-
-function openLogoutModal() {
-    const modal = document.getElementById('logoutModal');
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeLogoutModal() {
-    const modal = document.getElementById('logoutModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-}
-
-async function confirmLogout() {
-    closeLogoutModal();
-    
-    try {
-        const response = await fetch('/Taskly/controllers/logout.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        await response.json();
-        
-        // مسح جميع البيانات المحلية
-        localStorage.clear();
-        
-        // مسح الكوكيز
-        document.cookie.split(";").forEach(function(c) {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-        
-        showToast("Logged out successfully", "success");
-        
-        // التوجيه إلى الصفحة الرئيسية
-        setTimeout(() => {
-            window.location.href = '../index.html';
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Logout error:', error);
-        localStorage.clear();
-        window.location.href = '../index.html';
-    }
-}
-
-async function handleLogout() {
-    openLogoutModal();
-}
-
-
-// ============================================
-// UPDATE PROFILE FUNCTIONS FOR SELLER
-// ============================================
-
-// تحديث بيانات البائع
-async function updateSellerProfile() {
-    const name = document.getElementById('profName')?.value.trim();
-    const bio = document.getElementById('profBio')?.value;
-    const skills = document.getElementById('profSkills')?.value;
-    const country = document.getElementById('profCountry')?.value;
-    const experience = document.getElementById('profExperience')?.value;
-    
-    if (!name) {
-        showToast('Name is required', 'error');
-        return;
-    }
-    
-    const saveBtn = document.querySelector('.btn-save');
-    const originalText = saveBtn ? saveBtn.innerHTML : 'Save';
-    
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    }
-    
-    try {
-        const response = await fetch('/Taskly/controllers/updateProfile.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'updateProfile',
-                name: name,
-                bio: bio,
-                skills: skills,
-                country: country,
-                experience: experience
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Profile updated successfully!', 'success');
-            // تحديث الاسم في السايدبار
-            const sidebarName = document.getElementById('sidebarName');
-            if (sidebarName) sidebarName.innerText = name;
-            
-            // إعادة تحميل البيانات
-            setTimeout(() => {
-                loadUserData();
-            }, 500);
-        } else {
-            showToast(data.message || 'Update failed', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Server error', 'error');
-    } finally {
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-        }
-    }
-}
-
-// تحديث لغات البائع
-// ========================================
-// UPDATE SELLER LANGUAGES - FIXED
-// ========================================
-async function updateSellerLanguages() {
-    // تحويل أسماء اللغات إلى IDs
-    const languageIds = sellerData.languages.map(langName => {
-        const found = allLanguages.find(l => l.name === langName);
-        return found ? found.id : null;
-    }).filter(id => id !== null);
-    
-    console.log('Updating languages - Names:', sellerData.languages);
-    console.log('Updating languages - IDs:', languageIds);
-    
-    try {
-        const response = await fetch('/Taskly/controllers/updateLanguages.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                languages: languageIds
-            })
-        });
-        
-        const data = await response.json();
-        console.log('Languages update response:', data);
-        
-        if (data.success) {
-            showToast('Languages updated successfully!', 'success');
-        } else {
-            showToast(data.message || 'Failed to update languages', 'error');
-        }
-    } catch (error) {
-        console.error('Error updating languages:', error);
-        showToast('Server error: ' + error.message, 'error');
-    }
-}
-
-async function updateSellerPassword() {
-    const currentPassword = document.getElementById('oldPass')?.value;
-    const newPassword = document.getElementById('newPass')?.value;
-    const confirmPassword = document.getElementById('confirmPass')?.value;
-    
-    if (!currentPassword || !newPassword || !confirmPassword) {
-        showToast('Please fill in all password fields', 'error');
-        return;
-    }
-    
-    if (newPassword.length < 8) {
-        showToast('Password must be at least 8 characters', 'error');
-        return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-        showToast('Passwords do not match', 'error');
-        return;
-    }
-    
-    const updateBtn = document.querySelector('.btn-update');
-    const originalText = updateBtn ? updateBtn.innerHTML : 'Update';
-    
-    if (updateBtn) {
-        updateBtn.disabled = true;
-        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-    }
-    
-    try {
-        const response = await fetch('/Taskly/controllers/updatePassword.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                currentPassword: currentPassword,
-                newPassword: newPassword
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Password updated successfully!', 'success');
-            document.getElementById('oldPass').value = '';
-            document.getElementById('newPass').value = '';
-            document.getElementById('confirmPass').value = '';
-        } else {
-            showToast(data.message || 'Password update failed', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Server error', 'error');
-    } finally {
-        if (updateBtn) {
-            updateBtn.disabled = false;
-            updateBtn.innerHTML = originalText;
-        }
-    }
-}
-
-async function loadCountries() {
-    try {
-        const response = await fetch('/Taskly/controllers/getSellerData.php');
-        const data = await response.json();
-        
-        console.log('Countries and Languages data:', data);
-        
-        if (data.success) {
-            // تعبئة قائمة الدول
-            const countrySelect = document.getElementById('profCountry');
-            if (countrySelect && data.countries) {
-                countrySelect.innerHTML = '<option value="">Select Country</option>';
-                data.countries.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.name;
-                    option.textContent = country.name;
-                    countrySelect.appendChild(option);
-                });
-            }
-            
-            // ✅ تعبئة قائمة اللغات من قاعدة البيانات
-            if (data.languages) {
-                allLanguages = data.languages;
-                const langSelect = document.getElementById('langSelect');
-                if (langSelect) {
-                    langSelect.innerHTML = '<option value="">-- Select Language --</option>';
-                    data.languages.forEach(language => {
-                        const option = document.createElement('option');
-                        option.value = language.id;
-                        option.textContent = language.name;
-                        langSelect.appendChild(option);
-                    });
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error loading countries:', error);
-    }
 }

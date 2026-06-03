@@ -1,17 +1,24 @@
 // ============================================
-// ORDER DATA from localStorage (from gig-details)
+// CHECKOUT.JS - COMPLETE WITH DATABASE INTEGRATION
+// ============================================
+
+// ============================================
+// API ENDPOINTS
+// ============================================
+const WALLET_API = '/Taskly/controllers/WalletController.php';
+const GIG_API = '/Taskly/controllers/GigController.php';
+
+// ============================================
+// GLOBAL VARIABLES
 // ============================================
 let orderData = null;
-let walletBalance = 1250.00;
+let walletBalance = 0;
 let selectedMethod = 'card';
 let appleVerified = false;
 let toastTimeout;
 let isProcessing = false;
-
-// ============================================
-// AUTHENTICATION - Load user data
-// ============================================
 let currentUser = null;
+
 // ============================================
 // FETCH USER AVATAR FROM DATABASE
 // ============================================
@@ -27,7 +34,6 @@ async function fetchUserAvatar() {
                 if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
                     avatarImg.src = data.avatar;
                 } else {
-                    // صورة افتراضية تعتمد على اسم المستخدم
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
                 }
             }
@@ -53,22 +59,15 @@ async function fetchUserData() {
                 avatar: data.avatar
             };
             updateUserAvatar();
+            
+            await loadWalletBalance();
         }
     } catch (error) {
         console.error('Error fetching user:', error);
     }
 }
-// ============================================
-// AUTHENTICATION - Load user data
-// ============================================
+
 function loadUserData() {
-    // First try from localStorage (backup)
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-        currentUser = JSON.parse(userData);
-        updateUserAvatar();
-    }
-    // Then fetch from database (will override)
     fetchUserData();
     fetchUserAvatar();
 }
@@ -81,15 +80,171 @@ function updateUserAvatar() {
 }
 
 // ============================================
+// LOAD WALLET BALANCE FROM DATABASE
+// ============================================
+async function loadWalletBalance() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data`);
+        const data = await response.json();
+        
+        if (data.success) {
+            walletBalance = data.balance;
+            
+            const walletBalanceElement = document.getElementById('wallet-balance-amount');
+            if (walletBalanceElement) {
+                walletBalanceElement.textContent = `$${walletBalance.toFixed(2)}`;
+            }
+            
+            updateWalletStatus();
+        }
+    } catch (error) {
+        console.error('Error loading wallet balance:', error);
+    }
+}
+
+// ============================================
+// LOAD ORDER FROM DATABASE
+// ============================================
+async function loadOrderFromDatabase() {
+    const storedOrder = localStorage.getItem('checkoutOrder');
+    
+    if (!storedOrder) {
+        showToast('No order information found', 'error');
+        setTimeout(() => window.location.href = 'gigs.html', 2000);
+        return;
+    }
+    
+    const tempOrder = JSON.parse(storedOrder);
+    const gigId = tempOrder.gigId;
+    const packageId = tempOrder.packageId;
+    
+    const titleElement = document.getElementById('order-title');
+    const packageElement = document.getElementById('order-package');
+    if (titleElement) titleElement.textContent = 'Loading...';
+    if (packageElement) packageElement.textContent = 'Loading...';
+    
+    try {
+        const response = await fetch(`${GIG_API}?action=get_gig_details&id=${gigId}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            showToast('Gig not found', 'error');
+            setTimeout(() => window.location.href = 'gigs.html', 2000);
+            return;
+        }
+        
+        const gig = result.data;
+        
+        let selectedPackage = null;
+        let packageType = null;
+        
+        if (gig.packages) {
+            if (gig.packages.basic && gig.packages.basic.id == packageId) {
+                selectedPackage = gig.packages.basic;
+                packageType = 'basic';
+            } else if (gig.packages.standard && gig.packages.standard.id == packageId) {
+                selectedPackage = gig.packages.standard;
+                packageType = 'standard';
+            } else if (gig.packages.premium && gig.packages.premium.id == packageId) {
+                selectedPackage = gig.packages.premium;
+                packageType = 'premium';
+            }
+        }
+        
+        if (!selectedPackage) {
+            showToast('Selected package not found', 'error');
+            setTimeout(() => window.location.href = 'gigs.html', 2000);
+            return;
+        }
+        
+        // تحويل delivery و revisions
+        let deliveryText = selectedPackage.delivery || '';
+        if (!deliveryText && selectedPackage.delivery_time_days) {
+            const days = parseInt(selectedPackage.delivery_time_days);
+            deliveryText = `${days} Day${days > 1 ? 's' : ''} Delivery`;
+        }
+        
+        let revisionsText = selectedPackage.revisions || '';
+        if (!revisionsText && selectedPackage.revisions_allowed !== undefined) {
+            const revs = parseInt(selectedPackage.revisions_allowed);
+            if (revs === 999 || revs === 0) {
+                revisionsText = 'Unlimited Revisions';
+            } else {
+                revisionsText = `${revs} Revision${revs > 1 ? 's' : ''}`;
+            }
+        }
+        
+        orderData = {
+            gigId: gig.id,
+            packageId: selectedPackage.id,
+            packageType: packageType,
+            title: gig.title,
+            packageName: selectedPackage.name,
+            price: parseFloat(selectedPackage.price),
+            seller: gig.seller,
+            sellerId: gig.sellerId,
+            delivery: deliveryText,
+            revisions: revisionsText,
+            features: selectedPackage.features || [],
+            image: tempOrder.image || (gig.images && gig.images[0]) || '/Taskly/images/default-gig.jpg'
+        };
+        
+        updateOrderSummary();
+        
+    } catch (error) {
+        console.error('Error loading gig data:', error);
+        showToast('Failed to load order details', 'error');
+        setTimeout(() => window.location.href = 'gigs.html', 2000);
+    }
+}
+
+function updateOrderSummary() {
+    const titleElement = document.getElementById('order-title');
+    const packageElement = document.getElementById('order-package');
+    const basePriceElement = document.getElementById('base-price');
+    const totalElement = document.getElementById('total-amount');
+    const sellerElement = document.getElementById('order-seller');
+    const deliveryElement = document.getElementById('order-delivery');
+    const revisionsElement = document.getElementById('order-revisions');
+    const featuresContainer = document.getElementById('order-features');
+    const orderImage = document.getElementById('order-image');
+    
+    if (titleElement) titleElement.textContent = orderData.title || "Loading...";
+    if (packageElement) packageElement.textContent = orderData.packageName || "Loading...";
+    if (sellerElement) sellerElement.textContent = orderData.seller || "Loading...";
+    
+    if (orderImage && orderData.image) {
+        orderImage.src = orderData.image;
+        orderImage.alt = orderData.title;
+    }
+    
+    const totalPrice = orderData.price || 0;
+    const serviceFee = totalPrice * 0.05;
+    const basePrice = totalPrice - serviceFee;
+    
+    if (basePriceElement) basePriceElement.textContent = `$${basePrice.toFixed(2)}`;
+    if (totalElement) totalElement.textContent = `$${totalPrice.toFixed(2)}`;
+    
+    if (deliveryElement) deliveryElement.innerHTML = `<i class="far fa-clock"></i> ${orderData.delivery || 'Standard Delivery'}`;
+    if (revisionsElement) revisionsElement.innerHTML = `<i class="fas fa-sync"></i> ${orderData.revisions || '2 Revisions'}`;
+    
+    if (featuresContainer && orderData.features && orderData.features.length > 0) {
+        featuresContainer.innerHTML = orderData.features.map(f => `
+            <div class="feature-item"><i class="fas fa-check"></i> ${escapeHtml(f)}</div>
+        `).join('');
+    }
+    
+    updateWalletStatus();
+}
+
+// ============================================
 // GET TOTAL AMOUNT
 // ============================================
 function getTotalAmount() {
-    // First try to get from orderData
     if (orderData && orderData.price && typeof orderData.price === 'number') {
         return orderData.price;
     }
     
-    // Second try to get from the DOM
     const totalElement = document.getElementById('total-amount');
     if (totalElement) {
         const totalText = totalElement.textContent;
@@ -102,44 +257,7 @@ function getTotalAmount() {
         }
     }
     
-    return 524;
-}
-
-// ============================================
-// LOAD ORDER FROM GIG DETAILS
-// ============================================
-function loadOrderFromStorage() {
-    const storedOrder = localStorage.getItem('checkoutOrder');
-    
-    if (storedOrder) {
-        orderData = JSON.parse(storedOrder);
-        updateOrderSummary();
-    } else {
-        orderData = {
-            title: "Elite Branding & Identity System",
-            packageName: "Startup Foundation",
-            price: 150,
-            gigId: 1,
-            seller: "Vector Aura"
-        };
-        updateOrderSummary();
-    }
-}
-
-function updateOrderSummary() {
-    const titleElement = document.getElementById('order-title');
-    const packageElement = document.getElementById('order-package');
-    const basePriceElement = document.getElementById('base-price');
-    const totalElement = document.getElementById('total-amount');
-    
-    if (titleElement) titleElement.textContent = orderData.title || "Web Development";
-    if (packageElement) packageElement.textContent = orderData.packageName || "Premium Package";
-    
-    const totalPrice = orderData.price || 524;
-    const basePrice = totalPrice - 25;
-    
-    if (basePriceElement) basePriceElement.textContent = `$${basePrice}`;
-    if (totalElement) totalElement.textContent = `$${totalPrice}`;
+    return 0;
 }
 
 // ============================================
@@ -155,10 +273,6 @@ function goToOrders() {
 
 function goToProfile() {
     window.location.href = 'profile.html';
-}
-
-function goToOrderTracking(orderId) {
-    window.location.href = `order-tracking.html?id=${orderId}`;
 }
 
 // ============================================
@@ -242,7 +356,9 @@ function initApplePay() {
                 appleVerifyBtn.style.background = '#10b981';
                 
                 const statusDiv = document.getElementById('apple-verified-status');
-                statusDiv.innerHTML = '<div class="verified-badge"><i class="fas fa-check-circle"></i> Identity Verified Successfully</div>';
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="verified-badge"><i class="fas fa-check-circle"></i> Identity Verified Successfully</div>';
+                }
                 
                 showToast('Apple Pay verification successful!', 'success');
             }, 1500);
@@ -256,15 +372,17 @@ function initApplePay() {
 function updateWalletStatus() {
     const totalAmount = getTotalAmount();
     const walletStatus = document.getElementById('wallet-status');
-    if (walletBalance >= totalAmount) {
-        walletStatus.innerHTML = '<div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); border-radius: 12px; padding: 10px; text-align: center; font-size: 0.75rem; color: var(--success); margin-top: 10px;"><i class="fas fa-check-circle"></i> Sufficient balance! You can pay with your wallet.</div>';
-    } else {
-        walletStatus.innerHTML = `<div style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error); border-radius: 12px; padding: 10px; text-align: center; font-size: 0.75rem; color: var(--error); margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Insufficient balance! You need $${(totalAmount - walletBalance).toFixed(2)} more.</div>`;
+    if (walletStatus) {
+        if (walletBalance >= totalAmount && totalAmount > 0) {
+            walletStatus.innerHTML = '<div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); border-radius: 12px; padding: 10px; text-align: center; font-size: 0.75rem; color: var(--success); margin-top: 10px;"><i class="fas fa-check-circle"></i> Sufficient balance! You can pay with your wallet.</div>';
+        } else if (totalAmount > 0) {
+            walletStatus.innerHTML = `<div style="background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error); border-radius: 12px; padding: 10px; text-align: center; font-size: 0.75rem; color: var(--error); margin-top: 10px;"><i class="fas fa-exclamation-triangle"></i> Insufficient balance! You need $${(totalAmount - walletBalance).toFixed(2)} more.</div>`;
+        }
     }
 }
 
 // ============================================
-// VALIDATION FUNCTIONS - FIXED
+// VALIDATION FUNCTIONS
 // ============================================
 function validateCardPayment() {
     const cardName = document.getElementById('card-name')?.value.trim() || '';
@@ -338,20 +456,66 @@ function validateWalletPayment() {
         showToast('PIN must be 4 digits', 'error');
         return false;
     }
-    if (walletBalance < totalAmount) {
-        showToast(`Insufficient wallet balance! Available: $${walletBalance.toFixed(2)}`, 'error');
+    if (!/^\d+$/.test(walletPin)) {
+        showToast('PIN must contain only numbers', 'error');
         return false;
     }
+    if (totalAmount <= 0) {
+        showToast('Invalid order amount', 'error');
+        return false;
+    }
+    if (walletBalance < totalAmount) {
+        showToast(`Insufficient balance! Available: $${walletBalance.toFixed(2)}`, 'error');
+        return false;
+    }
+    
     return true;
 }
 
 // ============================================
-// MAIN PROCESS PAYMENT FUNCTION - FIXED
+// PROCESS WALLET PAYMENT (بدون مودال)
 // ============================================
-function processPayment() {
-    console.log('Processing payment for method:', selectedMethod);
-    
-    if (selectedMethod === 'card') {
+async function processWalletPayment(amount, pin) {
+    try {
+        const response = await fetch(`${WALLET_API}?action=withdraw`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                amount: amount, 
+                pin: pin, 
+                account: `Payment for gig #${orderData?.gigId} - ${orderData?.packageName}`
+            })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Payment of $${amount.toFixed(2)} completed successfully!`, 'success');
+            return true;
+        } else {
+            showToast(data.message, 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Wallet payment error:', error);
+        showToast('Payment failed. Please try again.', 'error');
+        return false;
+    }
+}
+
+// ============================================
+// PROCESS PAYMENT (Main entry point)
+// ============================================
+async function processPayment() {
+    if (selectedMethod === 'wallet') {
+        const isValid = validateWalletPayment();
+        if (!isValid) return false;
+        
+        const totalAmount = getTotalAmount();
+        const pin = document.getElementById('wallet-pin').value.trim();
+        
+        return await processWalletPayment(totalAmount, pin);
+    } 
+    else if (selectedMethod === 'card') {
         return validateCardPayment();
     } 
     else if (selectedMethod === 'paypal') {
@@ -359,9 +523,6 @@ function processPayment() {
     } 
     else if (selectedMethod === 'apple') {
         return validateApplePayment();
-    } 
-    else if (selectedMethod === 'wallet') {
-        return validateWalletPayment();
     }
     
     showToast('Please select a payment method', 'error');
@@ -369,89 +530,107 @@ function processPayment() {
 }
 
 // ============================================
-// EXECUTE PAYMENT
+// EXECUTE PAYMENT (Non-wallet methods)
 // ============================================
-function executePayment() {
+function executeNonWalletPayment() {
     const totalAmount = getTotalAmount();
     const orderId = Math.floor(Math.random() * 10000) + 1000;
     
-    if (selectedMethod === 'wallet') {
-        walletBalance -= totalAmount;
-        localStorage.setItem('walletBalance', walletBalance);
-        const walletElement = document.getElementById('wallet-balance-amount');
-        if (walletElement) {
-            walletElement.textContent = `$${walletBalance.toFixed(2)}`;
-        }
-        showToast(`$${totalAmount.toFixed(2)} deducted from your wallet!`, 'success');
-    } else if (selectedMethod === 'card') {
-        showToast('Payment processed successfully via Card!', 'success');
-    } else if (selectedMethod === 'paypal') {
-        showToast('Payment processed successfully via PayPal!', 'success');
-    } else if (selectedMethod === 'apple') {
-        showToast('Payment processed successfully via Apple Pay!', 'success');
-    }
+    showToast(`Payment of $${totalAmount.toFixed(2)} processed successfully!`, 'success');
     
-    // Store order in localStorage for tracking page
     const newOrder = {
         id: orderId,
+        gigId: orderData?.gigId,
+        packageId: orderData?.packageId,
         title: orderData?.title || "Web Development",
         packageName: orderData?.packageName || "Premium Package",
         amount: totalAmount,
         status: "In Progress",
         date: new Date().toISOString(),
-        seller: orderData?.seller || "Vector Aura"
+        seller: orderData?.seller || "Vector Aura",
+        sellerId: orderData?.sellerId,
+        paymentMethod: selectedMethod
     };
     
     let orders = JSON.parse(localStorage.getItem('userOrders') || '[]');
     orders.unshift(newOrder);
     localStorage.setItem('userOrders', JSON.stringify(orders));
     
-    // Clear checkout data
     localStorage.removeItem('checkoutOrder');
     
     return orderId;
 }
 
 // ============================================
-// PAY BUTTON ACTION - FIXED
+// CREATE ORDER AFTER SUCCESSFUL PAYMENT
+// ============================================
+function createOrderAfterPayment() {
+    const totalAmount = getTotalAmount();
+    const orderId = Math.floor(Math.random() * 10000) + 1000;
+    
+    const newOrder = {
+        id: orderId,
+        gigId: orderData?.gigId,
+        packageId: orderData?.packageId,
+        title: orderData?.title || "Web Development",
+        packageName: orderData?.packageName || "Premium Package",
+        amount: totalAmount,
+        status: "In Progress",
+        date: new Date().toISOString(),
+        seller: orderData?.seller || "Vector Aura",
+        sellerId: orderData?.sellerId,
+        paymentMethod: 'wallet'
+    };
+    
+    let orders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+    orders.unshift(newOrder);
+    localStorage.setItem('userOrders', JSON.stringify(orders));
+    
+    localStorage.removeItem('checkoutOrder');
+    
+    return orderId;
+}
+
+// ============================================
+// PAY BUTTON ACTION
 // ============================================
 function initPayButton() {
     const payBtn = document.getElementById('pay-btn');
     if (!payBtn) return;
     
-    payBtn.addEventListener("click", (e) => {
+    payBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         
-        // Prevent multiple clicks
         if (isProcessing) {
             showToast('Payment already in progress...', 'warning');
             return;
         }
         
-        // VALIDATE FIRST
-        const isValid = processPayment();
-        console.log('Validation result:', isValid);
+        const isValid = await processPayment();
         
         if (!isValid) {
-            return; // Stop here if validation fails
+            return;
         }
         
-        // Start processing
         isProcessing = true;
         const originalText = payBtn.innerHTML;
         payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         payBtn.disabled = true;
         
-        // Execute payment after delay
-        setTimeout(() => {
+        setTimeout(async () => {
             try {
-                const orderId = executePayment();
-                console.log('Payment successful, Order ID:', orderId);
+                let orderId;
+                
+                if (selectedMethod === 'wallet') {
+                    orderId = createOrderAfterPayment();
+                    await loadWalletBalance();
+                } else {
+                    orderId = executeNonWalletPayment();
+                }
                 
                 payBtn.innerHTML = '<i class="fas fa-check-circle"></i> Payment Successful!';
                 payBtn.classList.add('success');
                 
-                // Redirect to order tracking page
                 setTimeout(() => {
                     window.location.href = `order-tracking.html?id=${orderId}`;
                 }, 1500);
@@ -501,8 +680,13 @@ function initCardFormatting() {
 
     const walletPinInput = document.getElementById('wallet-pin');
     if (walletPinInput) {
+        walletPinInput.type = 'password';
+        walletPinInput.setAttribute('inputmode', 'numeric');
         walletPinInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        });
+        walletPinInput.addEventListener('keypress', (e) => {
+            return e.charCode >= 48 && e.charCode <= 57;
         });
     }
 }
@@ -521,7 +705,6 @@ function loadSavedData() {
         walletBalanceElement.textContent = `$${walletBalance.toFixed(2)}`;
     }
 
-    // Set default active method
     const defaultMethod = document.querySelector('[data-method="card"]');
     if (defaultMethod) {
         defaultMethod.classList.add('active');
@@ -529,13 +712,40 @@ function loadSavedData() {
 }
 
 // ============================================
+// HELPER FUNCTION
+// ============================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// ============================================
+// CHECK IF USER HAS WALLET PIN
+// ============================================
+async function checkWalletPinStatus() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data`);
+        const data = await response.json();
+        return data.has_pin || false;
+    } catch (error) {
+        return false;
+    }
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     fetchUserAvatar();
     console.log('Checkout page loaded');
     loadUserData();
-    loadOrderFromStorage();
+    await loadOrderFromDatabase();
+    await loadWalletBalance();
     loadSavedData();
     initPaymentMethods();
     initApplePay();

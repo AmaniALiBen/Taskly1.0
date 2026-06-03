@@ -722,6 +722,7 @@ window.addEventListener('pageshow', function() {
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    loadBuyerWalletData();
     fetchUserData();
     updatePinStatusUI();
     setupPinInputRestrictions();
@@ -753,3 +754,382 @@ document.addEventListener('keydown', function(event) {
         closePinModal();
     }
 });
+
+// ============================================
+// WALLET API CONNECTION (نفس حق البائع)
+// ============================================
+const WALLET_API = '/Taskly/controllers/WalletController.php';
+
+// متغيرات المحفظة
+let buyerWalletBalance = 0;
+let buyerHasPin = false;
+let pendingBuyerTransaction = null;
+
+// ============================================
+// LOAD WALLET DATA FROM DATABASE
+// ============================================
+async function loadBuyerWalletData() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data`);
+        const data = await response.json();
+        
+        if (data.success) {
+            buyerWalletBalance = data.balance;
+            buyerHasPin = data.has_pin;
+            
+            // تحديث الرصيد في الواجهة
+            const balanceElement = document.getElementById('current-balance');
+            if (balanceElement) {
+                balanceElement.innerText = `$${data.balance.toFixed(2)}`;
+            }
+            
+            // تحديث حالة PIN في الواجهة
+            updateBuyerPinStatusUI(data.has_pin);
+        }
+    } catch (error) {
+        console.error('Error loading wallet:', error);
+    }
+}
+
+function updateBuyerPinStatusUI(hasPin) {
+    const pinStatusIcon = document.getElementById('pin-status-icon');
+    const pinStatusTitle = document.getElementById('pin-status-title');
+    const pinStatusDesc = document.getElementById('pin-status-desc');
+    const pinActionBtn = document.getElementById('pin-action-btn');
+    
+    if (hasPin) {
+        if (pinStatusIcon) {
+            pinStatusIcon.className = 'pin-status-icon set';
+            pinStatusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+        if (pinStatusTitle) pinStatusTitle.innerHTML = 'PIN Protected';
+        if (pinStatusDesc) pinStatusDesc.innerHTML = 'Your wallet is secured with a PIN';
+        if (pinActionBtn) pinActionBtn.innerHTML = 'Change PIN';
+    } else {
+        if (pinStatusIcon) {
+            pinStatusIcon.className = 'pin-status-icon not-set';
+            pinStatusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+        if (pinStatusTitle) pinStatusTitle.innerHTML = 'PIN Not Set';
+        if (pinStatusDesc) pinStatusDesc.innerHTML = 'Set a PIN to secure your wallet transactions';
+        if (pinActionBtn) pinActionBtn.innerHTML = 'Set PIN';
+    }
+}
+
+// ============================================
+// PIN MODAL FOR BUYER (يستخدم نفس Modal الموجود)
+// ============================================
+function openBuyerPinModal() {
+    // استخدام الـ Modal الموجود بالفعل في الصفحة
+    openPinModal();
+}
+
+// تعديل دالة setupOrChangePin لتتواصل مع API
+const originalSetupOrChangePin = setupOrChangePin;
+setupOrChangePin = async function() {
+    if (isChangingPin) {
+        // تغيير PIN
+        const currentPin = document.getElementById('current-pin').value;
+        const newPin = document.getElementById('change-new-pin').value;
+        const confirmPin = document.getElementById('change-confirm-pin').value;
+        
+        if (!currentPin) {
+            showToast('Please enter your current PIN', 'error');
+            return;
+        }
+        
+        if (!newPin || !confirmPin) {
+            showToast('Please enter and confirm your new PIN', 'error');
+            return;
+        }
+        
+        if (newPin.length !== 4 || !/^\d+$/.test(newPin)) {
+            showToast('PIN must be 4 digits', 'error');
+            return;
+        }
+        
+        if (newPin !== confirmPin) {
+            showToast('PINs do not match', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${WALLET_API}?action=set_pin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_pin: currentPin, new_pin: newPin })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('PIN changed successfully!', 'success');
+                closePinModal();
+                loadBuyerWalletData();
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast('Failed to change PIN', 'error');
+        }
+        
+    } else {
+        // تعيين PIN لأول مرة
+        const newPin = document.getElementById('new-pin').value;
+        const confirmPin = document.getElementById('confirm-pin').value;
+        
+        if (!newPin || !confirmPin) {
+            showToast('Please enter and confirm your PIN', 'error');
+            return;
+        }
+        
+        if (newPin.length !== 4 || !/^\d+$/.test(newPin)) {
+            showToast('PIN must be 4 digits', 'error');
+            return;
+        }
+        
+        if (newPin !== confirmPin) {
+            showToast('PINs do not match', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${WALLET_API}?action=set_pin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_pin: newPin })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('PIN set successfully!', 'success');
+                closePinModal();
+                loadBuyerWalletData();
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast('Failed to set PIN', 'error');
+        }
+    }
+};
+
+// ============================================
+// VERIFY PIN MODAL (مودال إدخال PIN قبل العملية)
+// ============================================
+function openBuyerVerifyPinModal(transactionType, amount, account = null) {
+    pendingBuyerTransaction = {
+        type: transactionType,
+        amount: amount,
+        account: account
+    };
+    
+    // إنشاء مودال مؤقت
+    const modal = document.createElement('div');
+    modal.id = 'verifyPinModal';
+    modal.className = 'pin-modal-overlay';
+    modal.innerHTML = `
+        <div class="pin-modal-card">
+            <button class="pin-modal-close" onclick="this.closest('.pin-modal-overlay').remove()">&times;</button>
+            <div class="pin-modal-header">
+                <div class="pin-modal-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2>Verify <span>PIN</span></h2>
+                <p>Enter your 4-digit PIN to confirm ${transactionType === 'deposit' ? 'deposit' : 'withdrawal'}</p>
+            </div>
+            <div class="pin-modal-body">
+                <div class="input-box">
+                    <input type="password" id="verifyPinInput" class="pin-input" placeholder="Enter PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+            </div>
+            <div class="pin-modal-footer">
+                <button class="btn-outline" onclick="this.closest('.pin-modal-overlay').remove()">Cancel</button>
+                <button class="btn-primary" id="confirmVerifyPinBtn">Confirm</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('confirmVerifyPinBtn').onclick = async () => {
+        const pin = document.getElementById('verifyPinInput').value;
+        
+        if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
+            showToast('Please enter a valid 4-digit PIN', 'error');
+            return;
+        }
+        
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        
+        // تنفيذ العملية بعد التحقق
+        await executeBuyerTransaction(pendingBuyerTransaction.type, pendingBuyerTransaction.amount, pendingBuyerTransaction.account, pin);
+        pendingBuyerTransaction = null;
+    };
+}
+
+// ============================================
+// EXECUTE TRANSACTION AFTER PIN VERIFICATION
+// ============================================
+async function executeBuyerTransaction(type, amount, account, pin) {
+    try {
+        let response;
+        
+        if (type === 'deposit') {
+            response = await fetch(`${WALLET_API}?action=deposit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: amount })
+            });
+        } else {
+            response = await fetch(`${WALLET_API}?action=withdraw`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: amount, pin: pin, account: account })
+            });
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            
+            // تفريغ الحقول
+            if (type === 'deposit') {
+                document.getElementById('transaction-amount').value = '';
+            } else {
+                document.getElementById('transaction-amount').value = '';
+                const accountField = document.querySelector('#fields-paypal input') || document.querySelector('#fields-card input');
+                if (accountField) accountField.value = '';
+            }
+            
+            loadBuyerWalletData();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('Transaction failed', 'error');
+    }
+}
+
+// ============================================
+// MODIFIED PAYMENT FORM SUBMIT (مع PIN)
+// ============================================
+const buyerPaymentForm = document.getElementById('payment-form');
+if (buyerPaymentForm) {
+    buyerPaymentForm.onsubmit = async function(e) {
+        e.preventDefault();
+
+        const amountInput = document.getElementById('transaction-amount');
+        const amountRaw = amountInput ? amountInput.value : '';
+        
+        // التحقق من أن الحقل ليس فارغاً
+        if (!amountRaw || amountRaw.trim() === '') {
+            showToast('Please enter an amount', 'error');
+            return;
+        }
+        
+        // التحقق من أن القيمة أرقام فقط
+        if (!/^\d+(\.\d+)?$/.test(amountRaw)) {
+            showToast('Please enter numbers only (e.g., 100 or 50.50)', 'error');
+            return;
+        }
+        
+        const amount = parseFloat(amountRaw);
+        
+        if (isNaN(amount) || amount <= 0) {
+            showToast('Please enter a valid positive number', 'error');
+            return;
+        }
+
+        // التحقق من وجود PIN أولاً
+        const checkRes = await fetch(`${WALLET_API}?action=get_data`);
+        const checkData = await checkRes.json();
+        
+        if (!checkData.has_pin) {
+            showToast('Please set a PIN first', 'error');
+            openPinModal();
+            return;
+        }
+
+        const activeMethodCard = document.querySelector('.method-card.active');
+        let account = null;
+        
+        if (currentMode === 'withdraw') {
+            if (amount > checkData.balance) {
+                showToast('Insufficient balance', 'error');
+                return;
+            }
+            
+            // الحصول على معلومات الحساب حسب الطريقة المختارة
+            if (activeMethodCard) {
+                const methodSpan = activeMethodCard.querySelector('span');
+                const method = methodSpan ? methodSpan.innerText : '';
+                
+                if (method === 'PayPal') {
+                    const paypalEmail = document.getElementById('paypal-email');
+                    if (paypalEmail && paypalEmail.value) {
+                        account = paypalEmail.value;
+                    } else {
+                        showToast('Please enter PayPal email', 'error');
+                        return;
+                    }
+                } else {
+                    const cardName = document.querySelector('#fields-card input[placeholder="Full Name"]');
+                    if (cardName && cardName.value) {
+                        account = cardName.value;
+                    } else {
+                        account = 'Card payment';
+                    }
+                }
+            }
+        }
+        
+        // فتح مودال إدخال PIN
+        openBuyerVerifyPinModal(currentMode, amount, account);
+    };
+}
+
+// ============================================
+// UPDATE BALANCE UI from DATABASE
+// ============================================
+function updateBalanceUI() {
+    // replaced by loadBuyerWalletData
+}
+
+// ============================================
+// MODIFIED setWalletMode (لإزالة زر main-btn القديم)
+// ============================================
+const originalSetWalletMode = setWalletMode;
+setWalletMode = function(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.wallet-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // تغيير نص الزر في الفورم
+    const submitBtn = document.querySelector('#payment-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerText = mode === 'deposit' ? 'Complete Deposit' : 'Request Withdrawal';
+    }
+};
+
+// ============================================
+// منع الحروف في حقل المبلغ
+// ============================================
+const amountField = document.getElementById('transaction-amount');
+if (amountField) {
+    amountField.type = 'text';
+    amountField.setAttribute('inputmode', 'numeric');
+    amountField.setAttribute('pattern', '[0-9]*');
+    amountField.onkeypress = function(e) {
+        return (e.charCode >= 48 && e.charCode <= 57) || e.charCode === 46;
+    };
+}
+
+// ============================================
+// تحميل بيانات المحفظة عند فتح الصفحة
+// ============================================
+// أضف هذا السطر داخل DOMContentLoaded
+// loadBuyerWalletData();

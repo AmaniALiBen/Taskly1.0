@@ -116,19 +116,18 @@
             </div>
 
             <!-- Wallet Fields -->
-            <div id="wallet-fields" style="display: none;">
-                <div class="wallet-section">
-                    <div class="wallet-balance">
-                        <span class="wallet-label"><i class="fa-solid fa-wallet"></i> Your Wallet Balance</span>
-                        <span class="wallet-amount" id="wallet-balance-amount">$1,250.00</span>
-                    </div>
-                    <div class="input-group">
-                        <label>Wallet PIN</label>
-                        <input type="password" placeholder="Enter your 4-digit wallet PIN" maxlength="4" id="wallet-pin">
-                    </div>
-                    <div id="wallet-status"></div>
-                </div>
-            </div>
+<div id="wallet-fields" class="dynamic-fields" style="display: none;">
+    <div class="wallet-section">
+        <div class="wallet-balance">
+            <span class="wallet-label">Wallet Balance</span>
+            <span class="wallet-amount" id="wallet-balance-amount">$0.00</span>
+        </div>
+        <div class="input-group">
+            <input type="password" id="wallet-pin" placeholder="Wallet PIN" maxlength="4" autocomplete="off" onkeypress="return event.charCode >= 48 && event.charCode <= 57" oninput="this.value = this.value.replace(/\D/g, '').substring(0, 4)">
+        </div>
+        <div id="wallet-status"></div>
+    </div>
+</div>
         </div>
 
         <!-- RIGHT SIDE -->
