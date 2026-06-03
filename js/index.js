@@ -151,6 +151,17 @@ async function fetchUserData() {
 async function checkAuthStatus() {
     const data = await fetchUserData();
     if (data && data.loggedIn) {
+        // Redirect to correct dashboard if on homepage
+        if (window.location.pathname === '/Taskly/index.html' || 
+            window.location.pathname === '/Taskly/') {
+            if (data.role === 'seller') {
+                window.location.href = '/Taskly/pages/sellerDashboard.html';
+                return;
+            } else if (data.role === 'admin') {
+                window.location.href = '/Taskly/pages/admin.php';
+                return;
+            }
+        }
         updateUIForLoggedInUser();
     } else {
         updateUIForLoggedOutUser();

@@ -850,4 +850,87 @@ textarea.gig-form-input {
     .add-category-panel { flex-direction: column; }
     .main-categories-grid { grid-template-columns: 1fr; }
     .subcat-item { flex-wrap: wrap; }
+}/* ── Add to admin.css ─────────────────────────────────────── */
+
+.admin-avatar-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-avatar-circle {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.nav-avatar-circle:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
+.admin-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    background: var(--glass-card-bg, rgba(15, 10, 40, 0.95));
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.08));
+    border-radius: 12px;
+    min-width: 160px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    overflow: hidden;
+    animation: dropdownFadeIn 0.15s ease;
+}
+
+.admin-dropdown.open {
+    display: block;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.admin-dropdown-arrow {
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    width: 12px;
+    height: 12px;
+    background: var(--glass-card-bg, rgba(15, 10, 40, 0.95));
+    border-left: 1px solid var(--glass-border, rgba(255,255,255,0.08));
+    border-top: 1px solid var(--glass-border, rgba(255,255,255,0.08));
+    transform: rotate(45deg);
+}
+
+.admin-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 18px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary, #fff);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: left;
+}
+
+.admin-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-dropdown-item.logout-item:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+}
+
+.admin-dropdown-item i {
+    font-size: 0.9rem;
+    width: 16px;
+    text-align: center;
 }

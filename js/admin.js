@@ -116,4 +116,46 @@ document.addEventListener('DOMContentLoaded', () => {
             loadUsers('sellers');
         }
     }, 100);
+});// ── Add to admin.js ───────────────────────────────────────────
+
+// Toggle avatar dropdown
+function toggleAdminMenu() {
+    const dropdown = document.getElementById('adminDropdown');
+    if (!dropdown) return;
+    dropdown.classList.toggle('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const wrapper  = document.querySelector('.admin-avatar-wrapper');
+    const dropdown = document.getElementById('adminDropdown');
+    if (!wrapper || !dropdown) return;
+
+    if (!wrapper.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
 });
+
+// Logout — clears session and redirects to homepage
+async function adminLogout() {
+    try {
+        await fetch('/Taskly/controllers/logout.php', {
+            method:      'POST',
+            credentials: 'same-origin'
+        });
+    } catch (err) {
+        console.error('Logout error:', err);
+    }
+
+    // Clear any localStorage just in case
+    localStorage.clear();
+
+    // Delete all cookies
+    document.cookie.split(';').forEach(c => {
+        document.cookie = c.replace(/^ +/, '')
+            .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+    });
+
+    // Redirect to homepage
+    window.location.href = '/Taskly/index.html';
+}

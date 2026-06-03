@@ -19,8 +19,16 @@
     <nav class="navbar">
         <div class="container nav-content">
             <a href="#" class="brand-logo">Task<span>ly</span></a>
-            <div class="nav-profile-wrapper">
-                <div class="nav-avatar-circle"></div>
+            <di<div class="admin-avatar-wrapper">
+    <div class="nav-avatar-circle" onclick="toggleAdminMenu()"></div>
+    <div id="adminDropdown" class="admin-dropdown">
+        <div class="admin-dropdown-arrow"></div>
+        <button class="admin-dropdown-item logout-item" onclick="adminLogout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </button>
+    </div>
+</div>
             </div>
         </div>
     </nav>
