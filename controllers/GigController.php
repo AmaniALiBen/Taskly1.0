@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 header('Content-Type: application/json');
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -13,8 +15,12 @@ switch ($action) {
 
     // ── GET SELLER'S GIGS ─────────────────────────────────────
     case 'my_gigs':
-        $seller_id = 1; // TODO: replace with $_SESSION['user_id'] after login is ready
-        $gigs      = $gigModel->getSellerGigs($seller_id);
+        $seller_id = $_SESSION['user_id'] ?? 0;
+        if ($seller_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'You must be logged in']);
+            break;
+        }
+        $gigs = $gigModel->getSellerGigs($seller_id);
 
         $formatted = [];
         foreach ($gigs as $gig) {
@@ -27,34 +33,58 @@ switch ($action) {
                 'image'    => $gig['image'] ?? null
             ];
         }
-
         echo json_encode(['success' => true, 'gigs' => $formatted]);
         break;
 
     // ── GET SINGLE GIG FOR EDITING ────────────────────────────
     case 'get':
         $gig_id = (int)($_GET['gig_id'] ?? 0);
-
         if ($gig_id <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid gig ID']);
             break;
         }
-
         $data = $gigModel->getCompleteGigForEdit($gig_id);
-
         if (!$data) {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Gig not found']);
             break;
         }
-
         echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    // ── GET GIG DETAILS PAGE ──────────────────────────────────
+    case 'get_gig_details':
+        $gig_id = (int)($_GET['id'] ?? 0);
+        if ($gig_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid gig ID']);
+            break;
+        }
+        $data = $gigModel->getPublicGigDetails($gig_id);
+        if (!$data) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Gig not found']);
+            break;
+        }
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    // ── PUBLIC GIGS FOR HOMEPAGE ──────────────────────────────
+    case 'public_gigs':
+        $limit = (int)($_GET['limit'] ?? 8);
+        $gigs  = $gigModel->getPublicGigs($limit);
+        echo json_encode(['success' => true, 'data' => $gigs]);
         break;
 
     // ── CREATE GIG ────────────────────────────────────────────
     case 'create':
-        $seller_id       = 1; // TODO: replace with $_SESSION['user_id']
+        $seller_id = $_SESSION['user_id'] ?? 0;
+        if ($seller_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'You must be logged in']);
+            break;
+        }
+
         $title           = trim($_POST['title'] ?? '');
         $description     = trim($_POST['description'] ?? '');
         $sub_category_id = (int)($_POST['sub_category_id'] ?? 0);
@@ -65,7 +95,6 @@ switch ($action) {
             break;
         }
 
-        // Validate all 3 packages exist
         foreach (['basic', 'standard', 'premium'] as $type) {
             if (!isset($packages[$type])) {
                 echo json_encode(['success' => false, 'message' => "Package {$type} data is missing"]);
@@ -77,29 +106,24 @@ switch ($action) {
             }
         }
 
-        // Create the gig
         $gig_id = $gigModel->create($seller_id, $sub_category_id, $title, $description);
-
         if (!$gig_id) {
             echo json_encode(['success' => false, 'message' => 'Failed to save gig']);
             break;
         }
 
-        // Save packages and their features
         foreach (['basic', 'standard', 'premium'] as $type) {
-            $price       = (float)$packages[$type]['price'];
-            $delivery    = (int)$packages[$type]['delivery_time_days'];
-            $revisions   = (int)($packages[$type]['revisions_allowed'] ?? 0);
-            $features    = $packages[$type]['features'] ?? [];
+            $price     = (float)$packages[$type]['price'];
+            $delivery  = (int)$packages[$type]['delivery_time_days'];
+            $revisions = (int)($packages[$type]['revisions_allowed'] ?? 0);
+            $features  = $packages[$type]['features'] ?? [];
 
             $package_id = $gigModel->addPackage($gig_id, $type, $price, $delivery, $revisions);
-
             if ($package_id && !empty($features)) {
                 $gigModel->addFeatures($package_id, $features);
             }
         }
 
-        // Save images
         if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
             $count = count($_FILES['images']['name']);
             for ($i = 0; $i < $count; $i++) {
@@ -110,7 +134,7 @@ switch ($action) {
                         'tmp_name' => $_FILES['images']['tmp_name'][$i],
                         'error'    => $_FILES['images']['error'][$i],
                         'size'     => $_FILES['images']['size'][$i]
-                    ], $i === 0); // first image is the cover
+                    ], $i === 0);
                 }
             }
         }
@@ -131,13 +155,10 @@ switch ($action) {
             break;
         }
 
-        // Update basic gig info
         $gigModel->update($gig_id, $sub_category_id, $title, $description, true);
 
-        // Update packages and features
         foreach (['basic', 'standard', 'premium'] as $type) {
             if (!isset($packages[$type])) continue;
-
             $price     = (float)($packages[$type]['price'] ?? 0);
             $delivery  = (int)($packages[$type]['delivery_time_days'] ?? 1);
             $revisions = (int)($packages[$type]['revisions_allowed'] ?? 0);
@@ -149,7 +170,6 @@ switch ($action) {
             }
         }
 
-        // Save any new images added during edit
         if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
             $count = count($_FILES['images']['name']);
             for ($i = 0; $i < $count; $i++) {
@@ -171,24 +191,43 @@ switch ($action) {
     // ── DELETE GIG ────────────────────────────────────────────
     case 'delete':
         $gig_id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
-
         if ($gig_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'Invalid gig ID']);
             break;
         }
-
         $deleted = $gigModel->delete($gig_id);
         echo json_encode([
             'success' => $deleted,
             'message' => $deleted ? 'Gig deleted successfully' : 'Failed to delete'
         ]);
         break;
-// ── GET PUBLIC GIGS FOR HOMEPAGE ────────────────────────────
-case 'public_gigs':
-    $limit = (int)($_GET['limit'] ?? 8);
-    $gigs = $gigModel->getPublicGigs($limit);
-    echo json_encode(['success' => true, 'data' => $gigs]);
-    break;
+
+    // ── REPORT A GIG ─────────────────────────────────────────
+    case 'report':
+        $gig_id      = (int)($_POST['gig_id'] ?? 0);
+        $reason      = trim($_POST['reason'] ?? '');
+        $reporter_id = $_SESSION['user_id'] ?? 0;
+
+        if ($reporter_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'You must be logged in']);
+            break;
+        }
+
+        if ($gig_id <= 0 || empty($reason)) {
+            echo json_encode(['success' => false, 'message' => 'Gig ID and reason are required']);
+            break;
+        }
+
+        $result = $gigModel->submitReport($gig_id, $reporter_id, $reason);
+
+        if ($result === 'already_reported') {
+            echo json_encode(['success' => false, 'message' => 'You have already reported this gig']);
+        } elseif ($result === 'ok') {
+            echo json_encode(['success' => true, 'message' => 'Report submitted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to submit report']);
+        }
+        break;
 
     default:
         http_response_code(400);

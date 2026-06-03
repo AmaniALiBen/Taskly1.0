@@ -291,7 +291,7 @@ function init() {
 // ============================================
 async function fetchAdminAvatar() {
     try {
-        const response = await fetch('../php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
         
         if (data.loggedIn) {

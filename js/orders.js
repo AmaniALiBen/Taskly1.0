@@ -41,7 +41,7 @@ const ordersData = [
 // ============================================
 async function fetchUserData() {
     try {
-        const response = await fetch('../php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
         
         console.log('User data from server:', data);
@@ -51,7 +51,7 @@ async function fetchUserData() {
             const avatarImg = document.getElementById('user-avatar-img');
             if (avatarImg) {
                 if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
-                    avatarImg.src = data.avatar;
+                    avatarImg.src = data.avatar + '?t=' + Date.now();
                 } else {
                     // صورة افتراضية تعتمد على اسم المستخدم
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;

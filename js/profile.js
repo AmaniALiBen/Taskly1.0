@@ -1,15 +1,18 @@
+// ============================================
+// PROFILE.JS - CLEAN VERSION
+// ============================================
+
 let currentMode = 'deposit';
 let biometricVerified = false;
 let currentBalance = 450.00;
 let walletPin = localStorage.getItem('walletPin');
 
 // ============================================
-// TOAST FUNCTIONS - FIXED
+// TOAST FUNCTIONS
 // ============================================
 function showToast(message, type = 'success') {
     let toast = document.getElementById('toast');
     
-    // Create toast if it doesn't exist
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast';
@@ -18,14 +21,12 @@ function showToast(message, type = 'success') {
     
     const toastText = document.getElementById('toast-text');
     
-    // Set message
     if (toastText) {
         toastText.innerText = message;
     } else {
         toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i><span id="toast-text">${message}</span>`;
     }
     
-    // Set icon and color based on type
     const icon = toast.querySelector('i');
     if (icon) {
         if (type === 'error') {
@@ -43,17 +44,12 @@ function showToast(message, type = 'success') {
         }
     }
     
-    // Show toast
     toast.classList.add('show');
-    
-    // Hide after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 // ============================================
-// BACK BUTTON FUNCTION
+// NAVIGATION
 // ============================================
 function goBack() {
     window.location.href = '../index.html';
@@ -62,58 +58,358 @@ function goBack() {
 // ============================================
 // LOGOUT
 // ============================================
-function handleLogout() {
-    if (confirm("Are you sure you want to log out?")) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        localStorage.removeItem('walletBalance');
-        localStorage.removeItem('walletPin');
-        window.location.href = "../index.html";
+// ============================================
+// LOGOUT WITH CUSTOM TOAST CONFIRMATION
+// ============================================
+function openLogoutConfirm() {
+    // إنشاء مودال تأكيد مخصص بدلاً من confirm
+    const modal = document.createElement('div');
+    modal.id = 'logoutConfirmModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 100001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+                    border: 1px solid #7c3aed;
+                    border-radius: 20px;
+                    padding: 30px;
+                    max-width: 350px;
+                    width: 90%;
+                    text-align: center;
+                    animation: fadeIn 0.3s ease;">
+            <div style="width: 70px;
+                        height: 70px;
+                        background: rgba(124, 58, 237, 0.15);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px;
+                        font-size: 2rem;
+                        color: #f43f5e;">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 10px; color: white;">Logout?</h3>
+            <p style="color: #94a3b8; margin-bottom: 25px;">Are you sure you want to log out?</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="cancelLogoutBtn" style="background: rgba(255,255,255,0.1);
+                                                   border: 1px solid rgba(255,255,255,0.2);
+                                                   color: white;
+                                                   padding: 10px 25px;
+                                                   border-radius: 30px;
+                                                   cursor: pointer;
+                                                   font-weight: 600;">
+                    Cancel
+                </button>
+                <button id="confirmLogoutBtn" style="background: #f43f5e;
+                                                    border: none;
+                                                    color: white;
+                                                    padding: 10px 25px;
+                                                    border-radius: 30px;
+                                                    cursor: pointer;
+                                                    font-weight: 600;">
+                    Yes, Logout
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('cancelLogoutBtn').onclick = function() {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        showToast("Logout cancelled", "info");
+    };
+    
+    document.getElementById('confirmLogoutBtn').onclick = async function() {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        await performLogout();
+    };
+}
+
+async function performLogout() {
+    try {
+        const response = await fetch('/Taskly/controllers/logout.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast("👋 Logged out successfully! See you soon!", "success");
+            
+            localStorage.clear();
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            
+            setTimeout(() => {
+                window.location.href = "../index.html";
+            }, 1500);
+        } else {
+            showToast(data.message || "Logout failed", "error");
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        showToast("⚠️ Something went wrong, but you've been logged out", "warning");
+        localStorage.clear();
+        setTimeout(() => {
+            window.location.href = "../index.html";
+        }, 1000);
+    }
+}
+
+// استبدال دالة handleLogout القديمة
+async function handleLogout() {
+    openLogoutConfirm();
+}
+
+// ============================================
+// FETCH USER DATA FROM DATABASE
+// ============================================
+async function fetchUserData() {
+    try {
+        const response = await fetch('/Taskly/controllers/getUser.php');
+        const data = await response.json();
+        
+        console.log('User data from server:', data);
+        
+        if (data.loggedIn) {
+            const usernameInput = document.getElementById('username-input');
+            const displayName = document.getElementById('display-name');
+            const emailInput = document.querySelector('#personal-info input[type="email"]');
+            const roleElement = document.querySelector('.sidebar-header p');
+            
+            if (usernameInput) usernameInput.value = data.username;
+            if (displayName) displayName.innerText = data.username;
+            if (emailInput) emailInput.value = data.email;
+            
+            if (roleElement) {
+                if (data.role === 'admin') roleElement.innerText = 'Admin Account';
+                else if (data.role === 'seller') roleElement.innerText = 'Seller Account';
+                else roleElement.innerText = 'Buyer Account';
+            }
+            
+            const profileImg = document.getElementById('profile-img');
+            if (profileImg) {
+                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                    profileImg.src = data.avatar + '?t=' + new Date().getTime();
+                } else {
+                    profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=150`;
+                }
+            }
+            
+            if (data.balance !== undefined && data.balance !== null) {
+                currentBalance = parseFloat(data.balance);
+                updateBalanceUI();
+                localStorage.setItem('walletBalance', currentBalance);
+            }
+            
+            showToast(`Welcome back, ${data.username}!`, 'success');
+        }
+    } catch (error) {
+        console.error('Error fetching user data:', error);
     }
 }
 
 // ============================================
-// AVATAR UPLOAD
+// UPDATE PROFILE INFO
 // ============================================
-const avatarUpload = document.getElementById('avatar-upload');
-const profileImg = document.getElementById('profile-img');
-
-if (avatarUpload) {
-    avatarUpload.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                profileImg.src = event.target.result;
-                showToast('Profile photo updated!');
-                localStorage.setItem('userAvatar', event.target.result);
-            }
-            reader.readAsDataURL(file);
+async function updateProfileInfo() {
+    const name = document.getElementById('username-input')?.value.trim();
+    
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+    
+    const submitBtn = event?.target;
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Update';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    }
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateProfile.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateProfile',
+                name: name
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Profile updated successfully!', 'success');
+            document.getElementById('display-name').innerText = name;
+            localStorage.setItem('userName', name);
+        } else {
+            showToast(data.message || 'Update failed', 'error');
         }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// ============================================
+// UPDATE PASSWORD
+// ============================================
+async function updatePassword() {
+    const currentPassword = document.getElementById('current-password')?.value;
+    const newPassword = document.getElementById('new-password')?.value;
+    const confirmPassword = document.getElementById('confirm-password')?.value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showToast('Please fill in all password fields', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        showToast('New password must be at least 8 characters', 'error');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match', 'error');
+        return;
+    }
+    
+    const submitBtn = event?.target;
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Update';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    }
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updatePassword.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Password updated successfully!', 'success');
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+        } else {
+            showToast(data.message || 'Password update failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// ============================================
+// AVATAR UPLOAD FOR BUYER
+// ============================================
+function setupAvatarUpload() {
+    const avatarUpload = document.getElementById('avatar-upload');
+    const profileImg = document.getElementById('profile-img');
+    
+    if (!avatarUpload) return;
+    
+    avatarUpload.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Image size must be less than 5MB', 'error');
+            avatarUpload.value = '';
+            return;
+        }
+        
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            showToast('Invalid image format. Allowed: JPG, PNG, WEBP, GIF', 'error');
+            avatarUpload.value = '';
+            return;
+        }
+        
+        // معاينة محلية
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (profileImg) {
+                profileImg.src = event.target.result;
+            }
+        };
+        reader.readAsDataURL(file);
+        
+        // رفع إلى السيرفر
+        await uploadBuyerAvatar(file);
     });
 }
 
-const savedAvatar = localStorage.getItem('userAvatar');
-if (savedAvatar && profileImg) {
-    profileImg.src = savedAvatar;
-}
-
-// ============================================
-// PROFILE UPDATE
-// ============================================
-function updateProfile() {
-    const newName = document.getElementById('username-input').value;
-    if (newName.trim()) {
-        document.getElementById('display-name').innerText = newName;
-        showToast('Profile updated successfully!');
-        localStorage.setItem('userName', newName);
+async function uploadBuyerAvatar(file) {
+    const formData = new FormData();
+    formData.append('action', 'updateAvatar');
+    formData.append('avatar', file);
+    
+    showToast('Uploading image...', 'info');
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateAvatar.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        console.log('Upload response:', data);
+        
+        if (data.success) {
+            showToast('Profile picture updated successfully!', 'success');
+            
+            const profileImg = document.getElementById('profile-img');
+            if (profileImg && data.avatar) {
+                profileImg.src = data.avatar + '?t=' + new Date().getTime();
+            }
+            
+            localStorage.setItem('avatarUpdated', Date.now());
+        } else {
+            showToast(data.message || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error: ' + error.message, 'error');
     }
-}
-
-const savedName = localStorage.getItem('userName');
-if (savedName && document.getElementById('username-input')) {
-    document.getElementById('username-input').value = savedName;
-    document.getElementById('display-name').innerText = savedName;
 }
 
 // ============================================
@@ -397,14 +693,6 @@ if (paymentForm) {
 }
 
 // ============================================
-// LOAD SAVED BALANCE
-// ============================================
-const savedBalance = localStorage.getItem('walletBalance');
-if (savedBalance) {
-    currentBalance = parseFloat(savedBalance);
-}
-
-// ============================================
 // PIN INPUT RESTRICTIONS
 // ============================================
 function setupPinInputRestrictions() {
@@ -417,144 +705,51 @@ function setupPinInputRestrictions() {
 }
 
 // ============================================
+// STORAGE EVENT LISTENER FOR AVATAR UPDATE
+// ============================================
+window.addEventListener('storage', function(e) {
+    if (e.key === 'avatarUpdated') {
+        console.log('Avatar updated, refreshing...');
+        fetchUserData();
+    }
+});
+
+window.addEventListener('pageshow', function() {
+    fetchUserData();
+});
+
+// ============================================
 // INITIALIZATION
 // ============================================
-function loadUserData() {
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-        const user = JSON.parse(userData);
-        if (user.avatar && profileImg) {
-            profileImg.src = user.avatar;
-        }
-        if (user.name && document.getElementById('username-input')) {
-            document.getElementById('username-input').value = user.name;
-            document.getElementById('display-name').innerText = user.name;
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    fetchUserData();
+    updatePinStatusUI();
+    setupPinInputRestrictions();
+    updateBalanceUI();
+    setupAvatarUpload();
+    
+    const savedName = localStorage.getItem('userName');
+    if (savedName && document.getElementById('username-input')) {
+        document.getElementById('username-input').value = savedName;
+        document.getElementById('display-name').innerText = savedName;
     }
-}
-
-updatePinStatusUI();
-setupPinInputRestrictions();
-updateBalanceUI();
-loadUserData();
+    
+    const savedBalance = localStorage.getItem('walletBalance');
+    if (savedBalance) {
+        currentBalance = parseFloat(savedBalance);
+        updateBalanceUI();
+    }
+});
 
 window.onclick = function(event) {
     const pinModal = document.getElementById('pinModal');
     if (event.target === pinModal) {
         closePinModal();
     }
-}
+};
 
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closePinModal();
     }
-});
-// ============================================
-// FETCH USER DATA FROM SESSION (DATABASE)
-// ============================================
-async function fetchUserData() {
-    try {
-        const response = await fetch('../php/getUser.php');
-        const data = await response.json();
-        
-        console.log('User data from server:', data);
-        
-        if (data.loggedIn) {
-            // تحديث الاسم
-            const usernameInput = document.getElementById('username-input');
-            const displayName = document.getElementById('display-name');
-            const emailInput = document.querySelector('#personal-info input[type="email"]');
-            const roleElement = document.querySelector('.sidebar-header p');
-            
-            if (usernameInput) usernameInput.value = data.username;
-            if (displayName) displayName.innerText = data.username;
-            if (emailInput) emailInput.value = data.email;
-            
-            // تحديث الدور
-            if (roleElement) {
-                if (data.role === 'admin') roleElement.innerText = 'Admin Account';
-                else if (data.role === 'freelancer') roleElement.innerText = 'Seller Account';
-                else roleElement.innerText = 'Buyer Account';
-            }
-            
-            // تحديث الصورة الشخصية
-            if (profileImg) {
-                if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
-                    profileImg.src = data.avatar;
-                } else if (data.avatar_url) {
-                    profileImg.src = data.avatar_url;
-                } else {
-                    // صورة افتراضية تعتمد على الاسم
-                    profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=150`;
-                }
-            }
-            
-            // تحديث رصيد المحفظة (إذا كان موجوداً في قاعدة البيانات)
-            if (data.balance !== undefined && data.balance !== null) {
-                currentBalance = parseFloat(data.balance);
-                updateBalanceUI();
-                localStorage.setItem('walletBalance', currentBalance);
-            }
-            
-            showToast(`Welcome back, ${data.username}!`, 'success');
-        } else {
-            console.log('User not logged in, redirecting...');
-            // window.location.href = '../index.html';
-        }
-    } catch (error) {
-        console.error('Error fetching user data:', error);
-    }
-}
-
-// ============================================
-// UPDATE PROFILE TO DATABASE
-// ============================================
-async function updateProfileToDatabase() {
-    const newName = document.getElementById('username-input').value;
-    
-    if (!newName.trim()) {
-        showToast('Please enter a valid name', 'error');
-        return;
-    }
-    
-    try {
-        const response = await fetch('../php/update-profile.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                full_name: newName
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('display-name').innerText = newName;
-            showToast('Profile updated successfully!', 'success');
-            
-            // تحديث الاسم في localStorage
-            const userData = localStorage.getItem('userData');
-            if (userData) {
-                const user = JSON.parse(userData);
-                user.name = newName;
-                localStorage.setItem('userData', JSON.stringify(user));
-            }
-        } else {
-            showToast(data.message || 'Update failed', 'error');
-        }
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        showToast('Failed to update profile', 'error');
-    }
-}
-
-// استدعاء الدالة عند تحميل الصفحة (بعد الدوال الأخرى)
-document.addEventListener('DOMContentLoaded', function() {
-    fetchUserData();
-    updatePinStatusUI();
-    setupPinInputRestrictions();
-    updateBalanceUI();
 });

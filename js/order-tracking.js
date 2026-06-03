@@ -413,14 +413,14 @@ window.onload = function() {
 // ============================================
 async function fetchUserAvatar() {
     try {
-        const response = await fetch('../php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
         
         if (data.loggedIn) {
             const avatarImg = document.getElementById('user-avatar-img');
             if (avatarImg) {
                 if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
-                    avatarImg.src = data.avatar;
+                    avatarImg.src = data.avatar + '?t=' + Date.now();
                 } else {
                     avatarImg.src = 'https://i.pravatar.cc/100?u=' + data.user_id;
                 }

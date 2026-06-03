@@ -292,7 +292,7 @@ function toggleUnlimited(selectElement) {
 // ── AVATAR ────────────────────────────────────────────────────
 async function fetchUserAvatar() {
     try {
-        const response = await fetch('/Taskly/php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data     = await response.json();
         if (data.loggedIn) {
             const avatarImg = document.getElementById('user-avatar-img');
@@ -324,5 +324,4 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
-function goToProfile() { window.location.href = '/Taskly/pages/profile.html'; }
 function goBack()       { window.location.href = '/Taskly/pages/sellerDashboard.html?tab=gigs'; }

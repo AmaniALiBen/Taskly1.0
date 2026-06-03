@@ -28,15 +28,22 @@
                 <button class="button-small button-primary" onclick="openRoleModal()">Sign Up</button>
             </div>
 
-            <!-- User Menu (shown when logged in) -->
-            <div id="user-menu" class="user-menu hidden">
-                <button class="orders-btn" onclick="goToOrders()">
-                    <i class="fas fa-shopping-bag"></i> Orders
-                </button>
-                <div class="user-avatar" onclick="goToProfile()">
-                    <img id="user-avatar-img" src="https://i.pravatar.cc/100?u=default" alt="Avatar">
-                </div>
-            </div>
+    <div id="user-menu" class="user-menu hidden">
+    <button class="orders-btn" onclick="goToOrders()">
+        <i class="fas fa-shopping-bag"></i> Orders
+    </button>
+    
+    <div class="user-avatar-wrapper">
+        <div class="user-avatar" onclick="toggleUserMenu(event)">
+            <img id="user-avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%237c3aed'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar">
+        </div>
+        <div id="user-dropdown" class="user-dropdown hide-dropdown">
+            <a href="#" onclick="goToProfile(); return false;">My Profile</a>
+            <a href="#" onclick="goToOrders(); return false;">My Orders</a>
+            <a href="#" onclick="handleLogout(); return false;">Logout</a>
+        </div>
+    </div>
+</div>
         </div>
     </nav>
 
@@ -197,7 +204,7 @@
                 <h2>Welcome <span>Back</span></h2>
                 <p>Sign in to continue your journey</p>
             </div>
-            <form class="modal-form" id="loginForm"  action="http://localhost/taskly/php/logIn.php" method="post">
+            <form class="modal-form" id="loginForm">
                 <div class="input-group">
                     <input type="email" id="loginEmail" name="email" placeholder="Email address" required>
                 </div>
@@ -209,7 +216,7 @@
                         <input type="checkbox" id="rememberMe" name="remember"> Remember me
                     </label>
                 </div>
-                <button type="submit" name="login" class="modal-btn">Sign In</button>
+                <button type="submit" class="modal-btn">Sign In</button>
                 <div class="modal-footer">
                     Don't have an account? 
                     <a href="#" class="modal-link" onclick="openRoleModal();closeLoginModal(); return false;">Sign up now</a>
@@ -218,7 +225,7 @@
         </div>
     </div>
 
-    <!-- BUYER SIGNUP MODAL -->
+    <!-- Buyer Registration Modal -->
     <div id="buyerModal" class="modal-overlay">
         <div class="modal-card">
             <button class="modal-close" onclick="closeBuyerModal()">×</button>
@@ -227,7 +234,21 @@
                 <h2>Buyer <span>Registration</span></h2>
                 <p>Start hiring freelancers and purchase services</p>
             </div>
-            <form class="modal-form" id="buyerSignupForm" onsubmit="handleBuyerSignup(event)">
+            <form class="modal-form" id="buyerSignupForm" enctype="multipart/form-data">
+                
+                <!-- قسم رفع الصورة -->
+                <div class="buyer-avatar-upload" style="text-align: center; margin-bottom: 20px;">
+                    <div class="buyer-avatar-preview" id="buyerAvatarPreview" 
+                         style="width: 80px; height: 80px; border-radius: 50%; background: rgba(124,58,237,0.2); 
+                                margin: 0 auto 10px; cursor: pointer; display: flex; align-items: center; 
+                                justify-content: center; border: 2px dashed var(--primary-color); overflow: hidden;"
+                         onclick="document.getElementById('buyerProfilePic').click()">
+                        <i class="fas fa-camera" style="font-size: 24px; color: var(--primary-color);"></i>
+                    </div>
+                    <p style="font-size: 0.7rem; color: var(--text-secondary);">Click to upload profile photo (optional)</p>
+                    <input type="file" id="buyerProfilePic" name="profilePic" accept="image/*" hidden />
+                </div>
+                
                 <div class="input-group">
                     <input type="text" id="buyerName" placeholder="Full name" required>
                 </div>
@@ -254,6 +275,21 @@
             </form>
         </div>
     </div>
+
+<!-- Custom Logout Modal -->
+<div id="logoutModal" class="logout-modal-overlay">
+    <div class="logout-modal-card">
+        <div class="logout-modal-icon">
+            <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3>Logout Confirmation</h3>
+        <p>Are you sure you want to log out? You'll need to login again to access your account.</p>
+        <div class="logout-modal-buttons">
+            <button class="btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <button class="btn-confirm" onclick="confirmLogout()">Yes, Logout</button>
+        </div>
+    </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="js/index.js"></script>

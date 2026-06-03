@@ -596,3 +596,104 @@
 ;}
 }
 
+/* Custom Logout Modal */
+.logout-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.logout-modal-overlay.active {
+    display: flex;
+}
+
+.logout-modal-card {
+    background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+    border: 1px solid #7c3aed;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: modalFadeIn 0.3s ease;
+}
+
+.logout-modal-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(124, 58, 237, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2rem;
+    color: #f43f5e;
+}
+
+.logout-modal-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.logout-modal-card p {
+    color: #94a3b8;
+    margin-bottom: 25px;
+    font-size: 0.9rem;
+}
+
+.logout-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.logout-modal-buttons button {
+    padding: 10px 25px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.logout-modal-buttons .btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logout-modal-buttons .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.logout-modal-buttons .btn-confirm {
+    background: #f43f5e;
+    color: white;
+}
+
+.logout-modal-buttons .btn-confirm:hover {
+    background: #e11d48;
+    transform: translateY(-2px);
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

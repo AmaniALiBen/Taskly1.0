@@ -12,6 +12,12 @@ let sellerData = {
     skills: "",
     country: "",
     languages: [],
+    name: "",
+    email: "",
+    bio: "",
+    skills: "",
+    country: "",
+    languages: [],
     avatar: null,
     balance: 0,
     pending: 0,
@@ -57,29 +63,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========================================
 async function fetchUserData() {
     try {
-        const response = await fetch('/Taskly/php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
-
-        console.log('User data:', data);
-
+        
+        console.log('User data from server:', data);
+        
         if (data.loggedIn) {
-            sellerData.name  = data.username;
+            // التحقق من أن المستخدم بائع
+            if (data.role !== 'seller') {
+                console.log('User is not a seller, redirecting...');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            // ✅ تحديث الاسم في sellerData
+            sellerData.name = data.username;
             sellerData.email = data.email;
-
-            const sidebarName  = document.getElementById('sidebarName');
+            sellerData.role = data.role;
+            
+            // ✅ تحديث الاسم في السايدبار
+            const sidebarName = document.getElementById('sidebarName');
             const profileEmail = document.getElementById('profileEmail');
-            const profName     = document.getElementById('profName');
-            const profEmail    = document.getElementById('profEmail');
-
-            if (sidebarName)  sidebarName.innerText  = data.username;
-            if (profileEmail) profileEmail.innerText  = data.email;
-            if (profName)     profName.value           = data.username;
-            if (profEmail)    profEmail.value           = data.email;
-
+            const profName = document.getElementById('profName');
+            const profEmail = document.getElementById('profEmail');
             const sidebarAvatar = document.getElementById('sidebarAvatar');
-            const navAvatar     = document.querySelector('.nav-avatar-circle');
+            const navAvatar = document.querySelector('.nav-avatar-circle');
             const avatarPreview = document.getElementById('avatarPreview');
-
+            
+            // ✅ تحديث الاسم
+            if (sidebarName) sidebarName.innerText = data.username;
+            if (profileEmail) profileEmail.innerText = data.email;
+            if (profName) profName.value = data.username;
+            if (profEmail) profEmail.value = data.email;
+            
+            // ✅ تحديث الصورة الشخصية
             if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
                 const imgUrl = data.avatar;
                 [sidebarAvatar, navAvatar, avatarPreview].forEach(el => {
@@ -91,27 +108,96 @@ async function fetchUserData() {
                     }
                 });
             } else {
+                // ✅ صورة افتراضية تعتمد على أول حرف من الاسم
                 const firstLetter = data.username.charAt(0).toUpperCase();
-                [sidebarAvatar, navAvatar, avatarPreview].forEach(el => {
-                    if (el) {
-                        el.style.backgroundImage  = 'none';
-                        el.style.backgroundColor  = '#8b5cf6';
-                        el.style.display          = 'flex';
-                        el.style.alignItems       = 'center';
-                        el.style.justifyContent   = 'center';
-                        el.innerText = firstLetter;
-                    }
-                });
+                if (sidebarAvatar) {
+                    sidebarAvatar.style.backgroundImage = 'none';
+                    sidebarAvatar.style.backgroundColor = '#8b5cf6';
+                    sidebarAvatar.style.display = 'flex';
+                    sidebarAvatar.style.alignItems = 'center';
+                    sidebarAvatar.style.justifyContent = 'center';
+                    sidebarAvatar.innerText = firstLetter;
+                }
+                if (navAvatar) {
+                    navAvatar.style.backgroundImage = 'none';
+                    navAvatar.style.backgroundColor = '#8b5cf6';
+                    navAvatar.style.display = 'flex';
+                    navAvatar.style.alignItems = 'center';
+                    navAvatar.style.justifyContent = 'center';
+                    navAvatar.innerText = firstLetter;
+                }
+                if (avatarPreview) {
+                    avatarPreview.style.backgroundImage = 'none';
+                    avatarPreview.style.backgroundColor = '#8b5cf6';
+                    avatarPreview.style.display = 'flex';
+                    avatarPreview.style.alignItems = 'center';
+                    avatarPreview.style.justifyContent = 'center';
+                    avatarPreview.innerText = firstLetter;
+                }
             }
+            
+            
+            // تحديث باقي البيانات
+if (data.seller_details) {
+    const profBio = document.getElementById('profBio');       // experience
+    const profSkills = document.getElementById('profSkills'); // about_me
+    const profCountry = document.getElementById('profCountry');
+    
+    // experience → Professional Summary
+    if (profBio && data.seller_details.experience) {
+        profBio.value = data.seller_details.experience;
+    }
+    
+    // about_me → Skills
+    if (profSkills && data.seller_details.about_me) {
+        profSkills.value = data.seller_details.about_me;
+    }
+    
+    if (profCountry && data.country) {
+        for (let i = 0; i < profCountry.options.length; i++) {
+            if (profCountry.options[i].text === data.country) {
+                profCountry.selectedIndex = i;
+                break;
+            }
+        }
+    }
+}
+            
+            // تحديث اللغات
+            if (data.languages && data.languages.length > 0) {
+                sellerData.languages = data.languages.map(lang => lang.name);
+                renderLanguages();
+            }
+            
+            updateStats();
+            
+        } else {
+            console.log('User not logged in, redirecting...');
+            window.location.href = '../index.html';
         }
     } catch (error) {
         console.error('Error fetching user:', error);
     }
 }
-
 // ========================================
 // STATS
 // ========================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadCountries();
+    fetchUserData();
+    updateStats();
+    loadProfile();
+    setupAvatarUpload();
+    renderLanguages();
+    setupMethodButtons();
+    setupCharCounter();
+    setupAutoResize();
+    updateSidebarProfile();
+    renderGigs();       // يعرض واجهة إدارة الخدمات
+    renderOrders();     // يعرض واجهة الطلبات
+    renderTransactions();
+});
+
 function updateStats() {
     const availableBalance = document.getElementById('availableBalance');
     const pendingBalance   = document.getElementById('pendingBalance');
@@ -149,34 +235,153 @@ function loadProfile() {
     }, 100);
 }
 
-function saveProfile() {
-    const profName    = document.getElementById('profName');
-    const profBio     = document.getElementById('profBio');
-    const profSkills  = document.getElementById('profSkills');
-    const profCountry = document.getElementById('profCountry');
-
-    if (profName)    sellerData.name    = profName.value;
-    if (profBio)     sellerData.bio     = profBio.value;
-    if (profSkills)  sellerData.skills  = profSkills.value;
-    if (profCountry) sellerData.country = profCountry.value;
-
-    updateSidebarProfile();
-    showToast('Profile saved successfully', 'success');
+// ========================================
+// SAVE PROFILE TO DATABASE
+// ========================================
+// ========================================
+// SAVE PROFILE TO DATABASE (WITH IMAGE)
+// ========================================
+async function saveProfile() {
+    const name = document.getElementById('profName')?.value.trim();
+    const summary = document.getElementById('profBio')?.value;     // summary → experience
+    const skills = document.getElementById('profSkills')?.value;   // skills → about_me
+    const country = document.getElementById('profCountry')?.value;
+    const avatarInput = document.getElementById('avatarInput');
+    const avatarFile = avatarInput?.files[0];
+    
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+    
+    const saveBtn = document.querySelector('.btn-save');
+    const originalText = saveBtn ? saveBtn.innerHTML : 'Save';
+    
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'updateProfile');
+        formData.append('name', name);
+        formData.append('summary', summary);   // summary → experience
+        formData.append('skills', skills);     // skills → about_me
+        formData.append('country', country);
+        
+        if (avatarFile) {
+            formData.append('avatar', avatarFile);
+        }
+        
+        const response = await fetch('http://localhost/Taskly/controllers/updateProfile.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        console.log('Update response:', data);
+        
+        if (data.success) {
+            showToast('Profile saved successfully!', 'success');
+            
+            const sidebarName = document.getElementById('sidebarName');
+            if (sidebarName) sidebarName.innerText = name;
+            
+            if (data.avatar) {
+                const sidebarAvatar = document.getElementById('sidebarAvatar');
+                if (sidebarAvatar) {
+                    sidebarAvatar.style.backgroundImage = `url('${data.avatar}')`;
+                    sidebarAvatar.style.backgroundSize = 'cover';
+                    sidebarAvatar.innerText = '';
+                }
+                const avatarPreview = document.getElementById('avatarPreview');
+                if (avatarPreview) {
+                    avatarPreview.style.backgroundImage = `url('${data.avatar}')`;
+                    avatarPreview.style.backgroundSize = 'cover';
+                    avatarPreview.innerText = '';
+                }
+                avatarInput.value = '';
+            }
+            
+            setTimeout(() => fetchUserData(), 500);
+        } else {
+            showToast(data.message || 'Save failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error: ' + error.message, 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
 }
 
-function updatePassword() {
-    const oldPass     = document.getElementById('oldPass');
-    const newPass     = document.getElementById('newPass');
-    const confirmPass = document.getElementById('confirmPass');
-
-    if (!oldPass.value)                         return showToast('Current password is required', 'error');
-    if (newPass.value.length < 6)               return showToast('Password must be at least 6 characters', 'error');
-    if (newPass.value !== confirmPass.value)    return showToast('Passwords do not match', 'error');
-
-    showToast('Password updated successfully', 'success');
-    oldPass.value = '';
-    newPass.value = '';
-    confirmPass.value = '';
+// ========================================
+// UPDATE PASSWORD - FIXED
+// ========================================
+async function updatePassword() {
+    const oldPass = document.getElementById('oldPass')?.value;
+    const newPass = document.getElementById('newPass')?.value;
+    const confirmPass = document.getElementById('confirmPass')?.value;
+    
+    if (!oldPass || !newPass || !confirmPass) {
+        showToast("Please fill in all password fields", "error");
+        return;
+    }
+    
+    if (newPass.length < 8) {
+        showToast("Password must be at least 8 characters", "error");
+        return;
+    }
+    
+    if (newPass !== confirmPass) {
+        showToast("Passwords do not match", "error");
+        return;
+    }
+    
+    const updateBtn = document.querySelector('.btn-update');
+    const originalText = updateBtn ? updateBtn.innerHTML : 'Update';
+    
+    if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    }
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateProfile.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updatePassword',
+                currentPassword: oldPass,
+                newPassword: newPass
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Password update response:', data);
+        
+        if (data.success) {
+            showToast("Password updated successfully!", "success");
+            // تفريغ الحقول
+            document.getElementById('oldPass').value = '';
+            document.getElementById('newPass').value = '';
+            document.getElementById('confirmPass').value = '';
+        } else {
+            showToast(data.message || "Password update failed", "error");
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error: ' + error.message, 'error');
+    } finally {
+        if (updateBtn) {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = originalText;
+        }
+    }
 }
 
 // ========================================
@@ -234,22 +439,40 @@ function renderLanguages() {
 }
 
 function addLanguage() {
-    const select   = document.getElementById('langSelect');
-    const language = select.value;
-
-    if (!language)                              return showToast('Please select a language', 'error');
-    if (sellerData.languages.includes(language)) return showToast('Language already added', 'error');
-
-    sellerData.languages.push(language);
+    const select = document.getElementById('langSelect');
+    const selectedOption = select.options[select.selectedIndex];
+    const languageId = select.value;
+    const languageName = selectedOption?.text;
+    
+    console.log('Selected - ID:', languageId, 'Name:', languageName);
+    
+    if (!languageId || !languageName || languageId === "") {
+        showToast("Please select a language", "error");
+        return;
+    }
+    
+    if (sellerData.languages.includes(languageName)) {
+        showToast("Language already added", "error");
+        return;
+    }
+    
+    // أضف اسم اللغة وليس ID
+    sellerData.languages.push(languageName);
     renderLanguages();
-    select.value = '';
-    showToast(`Added ${language}`, 'success');
+    select.value = "";
+    showToast(`Added ${languageName}`, "success");
+    
+    // حفظ التغييرات في قاعدة البيانات
+    updateSellerLanguages();
 }
 
 function removeLanguage(language) {
     sellerData.languages = sellerData.languages.filter(l => l !== language);
     renderLanguages();
-    showToast(`Removed ${language}`, 'success');
+    showToast(`Removed ${language}`, "success");
+    
+    // حفظ التغييرات في قاعدة البيانات
+    updateSellerLanguages();
 }
 
 // ========================================
@@ -407,4 +630,264 @@ function escapeHtml(str) {
     return str.replace(/[&<>"']/g, m => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     })[m]);
+}
+
+
+// ============================================
+// LOGOUT FUNCTIONALITY
+// ============================================
+
+function openLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+async function confirmLogout() {
+    closeLogoutModal();
+    
+    try {
+        const response = await fetch('/Taskly/controllers/logout.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        await response.json();
+        
+        // مسح جميع البيانات المحلية
+        localStorage.clear();
+        
+        // مسح الكوكيز
+        document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        
+        showToast("Logged out successfully", "success");
+        
+        // التوجيه إلى الصفحة الرئيسية
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Logout error:', error);
+        localStorage.clear();
+        window.location.href = '../index.html';
+    }
+}
+
+async function handleLogout() {
+    openLogoutModal();
+}
+
+
+// ============================================
+// UPDATE PROFILE FUNCTIONS FOR SELLER
+// ============================================
+
+// تحديث بيانات البائع
+async function updateSellerProfile() {
+    const name = document.getElementById('profName')?.value.trim();
+    const bio = document.getElementById('profBio')?.value;
+    const skills = document.getElementById('profSkills')?.value;
+    const country = document.getElementById('profCountry')?.value;
+    const experience = document.getElementById('profExperience')?.value;
+    
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+    
+    const saveBtn = document.querySelector('.btn-save');
+    const originalText = saveBtn ? saveBtn.innerHTML : 'Save';
+    
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateProfile.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateProfile',
+                name: name,
+                bio: bio,
+                skills: skills,
+                country: country,
+                experience: experience
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Profile updated successfully!', 'success');
+            // تحديث الاسم في السايدبار
+            const sidebarName = document.getElementById('sidebarName');
+            if (sidebarName) sidebarName.innerText = name;
+            
+            // إعادة تحميل البيانات
+            setTimeout(() => {
+                loadUserData();
+            }, 500);
+        } else {
+            showToast(data.message || 'Update failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// تحديث لغات البائع
+// ========================================
+// UPDATE SELLER LANGUAGES - FIXED
+// ========================================
+async function updateSellerLanguages() {
+    // تحويل أسماء اللغات إلى IDs
+    const languageIds = sellerData.languages.map(langName => {
+        const found = allLanguages.find(l => l.name === langName);
+        return found ? found.id : null;
+    }).filter(id => id !== null);
+    
+    console.log('Updating languages - Names:', sellerData.languages);
+    console.log('Updating languages - IDs:', languageIds);
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updateLanguages.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                languages: languageIds
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Languages update response:', data);
+        
+        if (data.success) {
+            showToast('Languages updated successfully!', 'success');
+        } else {
+            showToast(data.message || 'Failed to update languages', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating languages:', error);
+        showToast('Server error: ' + error.message, 'error');
+    }
+}
+
+async function updateSellerPassword() {
+    const currentPassword = document.getElementById('oldPass')?.value;
+    const newPassword = document.getElementById('newPass')?.value;
+    const confirmPassword = document.getElementById('confirmPass')?.value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showToast('Please fill in all password fields', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        showToast('Password must be at least 8 characters', 'error');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+    }
+    
+    const updateBtn = document.querySelector('.btn-update');
+    const originalText = updateBtn ? updateBtn.innerHTML : 'Update';
+    
+    if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    }
+    
+    try {
+        const response = await fetch('/Taskly/controllers/updatePassword.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Password updated successfully!', 'success');
+            document.getElementById('oldPass').value = '';
+            document.getElementById('newPass').value = '';
+            document.getElementById('confirmPass').value = '';
+        } else {
+            showToast(data.message || 'Password update failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Server error', 'error');
+    } finally {
+        if (updateBtn) {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = originalText;
+        }
+    }
+}
+
+async function loadCountries() {
+    try {
+        const response = await fetch('/Taskly/controllers/getSellerData.php');
+        const data = await response.json();
+        
+        console.log('Countries and Languages data:', data);
+        
+        if (data.success) {
+            // تعبئة قائمة الدول
+            const countrySelect = document.getElementById('profCountry');
+            if (countrySelect && data.countries) {
+                countrySelect.innerHTML = '<option value="">Select Country</option>';
+                data.countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.name;
+                    option.textContent = country.name;
+                    countrySelect.appendChild(option);
+                });
+            }
+            
+            // ✅ تعبئة قائمة اللغات من قاعدة البيانات
+            if (data.languages) {
+                allLanguages = data.languages;
+                const langSelect = document.getElementById('langSelect');
+                if (langSelect) {
+                    langSelect.innerHTML = '<option value="">-- Select Language --</option>';
+                    data.languages.forEach(language => {
+                        const option = document.createElement('option');
+                        option.value = language.id;
+                        option.textContent = language.name;
+                        langSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading countries:', error);
+    }
 }

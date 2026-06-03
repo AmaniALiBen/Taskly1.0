@@ -60,11 +60,10 @@
        
         
         <div class="sidebar-footer">
-            
-            <button class="footer-item">
-                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-            </button>
-        </div>
+    <button class="footer-item" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+    </button>
+</div>
     </aside>
     
     <!-- Main Content -->
@@ -77,8 +76,7 @@
                     <div class="section-title"><i class="fas fa-user-circle"></i> Personal Information</div>
                     <div class="section-subtitle">Manage your account details and preferences</div>
                 </div>
-                <button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Profile</button>
-            </div>
+<button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> Save Profile</button>            </div>
             
             <div class="profile-row">
                 <div class="avatar-upload">
@@ -104,23 +102,8 @@
                 <div class="input-group">
                     <label class="input-label">Country</label>
                     <select id="profCountry" class="luxury-input custom-select">
-                        <option value="">Select Country</option>
-                        <option value="Egypt">Egypt</option>
-                        <option value="Saudi Arabia">Saudi Arabia</option>
-                        <option value="UAE">United Arab Emirates</option>
-                        <option value="Kuwait">Kuwait</option>
-                        <option value="Qatar">Qatar</option>
-                        <option value="Jordan">Jordan</option>
-                        <option value="Morocco">Morocco</option>
-                        <option value="Tunisia">Tunisia</option>
-                        <option value="Libya" selected>Libya</option>
-                        <option value="Algeria">Algeria</option>
-                        <option value="USA">United States</option>
-                        <option value="UK">United Kingdom</option>
-                        <option value="Canada">Canada</option>
-                        <option value="Germany">Germany</option>
-                        <option value="France">France</option>
-                    </select>
+    <option value="">Loading countries...</option>
+</select>
                 </div>
             </div>
 
@@ -139,15 +122,9 @@
                 <div class="languages-container">
                     <div class="lang-select-wrapper">
                         <select id="langSelect" class="luxury-input custom-select">
-                            <option value="">-- Select Language --</option>
-                            <option value="English">English (Native)</option>
-                            <option value="Arabic">Arabic (Native)</option>
-                            <option value="French">French</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="German">German</option>
-                            <option value="Italian">Italian</option>
-                            <option value="Turkish">Turkish</option>
-                        </select>
+    <option value="">-- Select Language --</option>
+
+</select>
                         <button type="button" class="btn-add-lang" onclick="addLanguage()">+ Add</button>
                     </div>
                     <div class="lang-tags" id="languagesContainer"></div>
@@ -326,7 +303,20 @@
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
-
+<!-- Custom Logout Modal -->
+<div id="logoutModal" class="logout-modal-overlay">
+    <div class="logout-modal-card">
+        <div class="logout-modal-icon">
+            <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3>Logout Confirmation</h3>
+        <p>Are you sure you want to log out? You'll need to login again to access your account.</p>
+        <div class="logout-modal-buttons">
+            <button class="btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <button class="btn-confirm" onclick="confirmLogout()">Yes, Logout</button>
+        </div>
+    </div>
+</div>
 <script src="../js/sellerDashboard.js"></script>
 <script src="../js/seller-gigs.js"></script>
 <script src="../js/seller-orders.js"></script>

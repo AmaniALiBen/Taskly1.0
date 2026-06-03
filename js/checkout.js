@@ -17,7 +17,7 @@ let currentUser = null;
 // ============================================
 async function fetchUserAvatar() {
     try {
-        const response = await fetch('../php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
         
         if (data.loggedIn) {
@@ -42,7 +42,7 @@ async function fetchUserAvatar() {
 // ============================================
 async function fetchUserData() {
     try {
-        const response = await fetch('../php/getUser.php');
+        const response = await fetch('/Taskly/controllers/getUser.php');
         const data = await response.json();
         
         if (data.loggedIn) {
