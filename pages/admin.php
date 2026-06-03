@@ -132,14 +132,17 @@
                         <p>Select a report to view details</p>
                     </div>
                 </div>
-                <div id="reportActions" class="report-actions" style="display: none;">
-                    <button class="btn-primary" onclick="deleteSelectedReportedGig()">
-                        <i class="fas fa-trash"></i> Delete Gig
-                    </button>
-                    <button class="btn-secondary" onclick="dismissSelectedReport()">
-                        <i class="fas fa-times"></i> Dismiss
-                    </button>
-                    <!-- Gig Details Modal -->
+             <div id="reportActions" class="report-actions" style="display: none;">
+    <button class="btn-secondary" onclick="viewReportedGig()">
+        <i class="fas fa-eye"></i> View Gig
+    </button>
+    <button class="btn-danger" onclick="deleteSelectedReportedGig()">
+        <i class="fas fa-trash"></i> Delete Gig
+    </button>
+    <button class="btn-secondary" onclick="dismissSelectedReport()">
+        <i class="fas fa-times"></i> Dismiss
+    </button>
+</div>
 <div id="gigDetailsModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
@@ -352,14 +355,16 @@
         <p class="confirm-modal-message" id="confirmModalMessage">Are you sure you want to delete this item?</p>
         <div class="confirm-modal-actions">
             <button class="btn-cancel" onclick="closeConfirmModal()">Cancel</button>
-            <button class="btn-confirm" onclick="confirmDelete()">Delete</button>
+            <button class="btn-confirm" id="confirmModalConfirmBtn" onclick="confirmDelete()">Confirm</button>
         </div>
     </div>
 </div>
 
 <script src="../js/admin.js"></script>
-<script src="../js/admin-categories.js"></script>
+
 <script src="../js/admin-users.js"></script>
+<script src="../js/admin-reports.js"></script>
+<script src="../js/admin-categories.js"></script>
 <script src="../js/admin-disputes.js"></script>
 </body>
 </html>

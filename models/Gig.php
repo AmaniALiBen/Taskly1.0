@@ -503,5 +503,100 @@ public function getPublicSellerGigs($seller_id, $limit = 10) {
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+    // =========================================================================
+    // TOGGLE ALL GIGS STATUS FOR A SELLER (for suspend/activate)
+    // =========================================================================
+    public function toggleStatusBySeller($seller_id, $is_active) {
+        $stmt = $this->db->prepare("
+            UPDATE gigs SET is_active = ? WHERE seller_id = ? AND is_deleted = 0
+        ");
+        return $stmt->execute([$is_active ? 1 : 0, $seller_id]);
+    }
+        // =========================================================================
+    // 10. GET ALL REPORTS FOR ADMIN
+    // =========================================================================
+
+    public function getAllReports() {
+        $stmt = $this->db->prepare("
+            SELECT 
+                r.id,
+                r.gig_id,
+                r.reason,
+                r.is_resolved,
+                r.report_date,
+                g.title as gig_title,
+                g.seller_id,
+                reporter.name as reporter_name,
+                reporter.email as reporter_email,
+                seller.name as seller_name
+            FROM reports r
+            JOIN gigs g ON g.id = r.gig_id
+            JOIN users reporter ON reporter.id = r.reporter_id
+            JOIN users seller ON seller.id = g.seller_id
+            WHERE r.is_resolved = 0
+            ORDER BY r.report_date DESC
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function resolveReport($report_id) {
+        $stmt = $this->db->prepare("
+            UPDATE reports SET is_resolved = 1 WHERE id = ?
+        ");
+        return $stmt->execute([$report_id]);
+    }
+
+    public function deleteReportedGig($gig_id) {
+    try {
+        $this->db->beginTransaction();
+ 
+        // 1. Find all active orders for this gig that need cancelling
+        $ordersStmt = $this->db->prepare("
+            SELECT o.id, o.buyer_id, gp.price
+            FROM orders o
+            JOIN gig_packages gp ON gp.id = o.package_id
+            WHERE gp.gig_id = ?
+            AND o.status NOT IN ('completed', 'cancelled')
+        ");
+        $ordersStmt->execute([$gig_id]);
+        $orders = $ordersStmt->fetchAll(PDO::FETCH_ASSOC);
+ 
+        // 2. For each order — refund the buyer and cancel the order
+        $refundStmt  = $this->db->prepare(
+            "UPDATE wallets SET balance = balance + ? WHERE user_id = ?"
+        );
+        $cancelStmt  = $this->db->prepare(
+            "UPDATE orders SET status = 'cancelled' WHERE id = ?"
+        );
+ 
+        foreach ($orders as $order) {
+            $refundStmt->execute([$order['price'], $order['buyer_id']]);
+            $cancelStmt->execute([$order['id']]);
+        }
+ 
+        // 3. Resolve all reports for this gig
+        $this->db->prepare(
+            "UPDATE reports SET is_resolved = 1 WHERE gig_id = ?"
+        )->execute([$gig_id]);
+ 
+        // 4. Soft delete the gig
+        $this->db->prepare(
+            "UPDATE gigs SET is_deleted = 1, is_active = 0 WHERE id = ?"
+        )->execute([$gig_id]);
+ 
+        $this->db->commit();
+        return true;
+ 
+    } catch (Exception $e) {
+        $this->db->rollBack();
+        return false;
+    }
+}
+ 
+// Add this helper so the controller can stop accessing $db directly
+public function getDb() {
+    return $this->db;
+}
 }
 ?>

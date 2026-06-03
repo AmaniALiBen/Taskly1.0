@@ -238,13 +238,17 @@ function init() {
 }
 
 // Event Listeners
-document.getElementById("confirmActionBtn")?.addEventListener("click", applyResolution);
-
-window.addEventListener("click", (e) => {
-    if (e.target === document.getElementById("actionModal")) closeActionModal();
-    if (e.target === document.getElementById("warningSellerModal")) closeSellerWarningModal();
-    if (e.target === document.getElementById("warningBuyerModal")) closeBuyerWarningModal();
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById("confirmActionBtn")?.addEventListener("click", applyResolution);
+    
+    window.addEventListener("click", (e) => {
+        if (e.target === document.getElementById("actionModal")) closeActionModal();
+        if (e.target === document.getElementById("warningSellerModal")) closeSellerWarningModal();
+        if (e.target === document.getElementById("warningBuyerModal")) closeBuyerWarningModal();
+    });
+    
+    // Only init if the complaints tab exists
+    if (document.getElementById('complaintListScroll')) {
+        init();
+    }
 });
-
-// Start the app
-init();

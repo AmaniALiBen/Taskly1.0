@@ -1,13 +1,12 @@
 // ============================================
-// ADMIN DASHBOARD - NON-USER FUNCTIONS ONLY
+// ADMIN DASHBOARD - CLEAN VERSION
 // ============================================
 
 // ========== GLOBAL VARIABLES ==========
 let currentMainCategory = null;
 let currentSubcategory = null;
-let selectedReport = null;
+// let selectedReport = null;
 let pendingDeleteAction = null;
-let reportsData = [];
 
 // ========== CONFIRM MODAL ==========
 function showConfirmModal(title, message, onConfirm, confirmText = 'Confirm') {
@@ -41,6 +40,9 @@ function switchTab(tabName, event) {
     
     if (tabName === 'users') {
         if (typeof loadUsers === 'function') loadUsers('sellers');
+    }
+    if (tabName === 'reports') {
+        if (typeof loadReports === 'function') loadReports();
     }
 }
 
@@ -99,84 +101,16 @@ async function fetchAdminAvatar() {
     }
 }
 
-// ========== REPORTS FUNCTIONS ==========
-function renderReportsList() {
-    const container = document.getElementById('reportsList');
-    if (!reportsData.length) {
-        container.innerHTML = `<div class="empty-state"><i class="fas fa-flag"></i><p>No reports</p></div>`;
-        return;
-    }
-    container.innerHTML = reportsData.map(r => `
-        <div class="report-item" onclick="selectReport(${r.id})" data-id="${r.id}">
-            <div class="report-item-title">${escapeHtml(r.gigTitle)}</div>
-            <div class="report-item-meta">Reported by: ${r.reportedBy}</div>
-            <div class="report-item-meta">${r.date}</div>
-            <span class="report-badge">Pending</span>
-        </div>
-    `).join('');
-}
-
-function selectReport(reportId) {
-    selectedReport = reportsData.find(r => r.id === reportId);
-    document.querySelectorAll('.report-item').forEach(item => item.classList.remove('active'));
-    document.querySelector(`.report-item[data-id="${reportId}"]`).classList.add('active');
-    
-    document.getElementById('reportDetailsContent').innerHTML = `
-        <div class="detail-row">
-            <div class="detail-label">Gig Title</div>
-            <div class="detail-value">${escapeHtml(selectedReport.gigTitle)}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Reported By</div>
-            <div class="detail-value">${selectedReport.reportedBy}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Date</div>
-            <div class="detail-value">${selectedReport.date}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Reason</div>
-            <div class="detail-value">${escapeHtml(selectedReport.reason)}</div>
-        </div>
-    `;
-    document.getElementById('reportActions').style.display = 'flex';
-}
-
-function deleteSelectedReportedGig() {
-    if (selectedReport) {
-        showConfirmModal("Delete Gig", `Are you sure you want to delete "${selectedReport.gigTitle}"?`, () => {
-            reportsData = reportsData.filter(r => r.id !== selectedReport.id);
-            selectedReport = null;
-            renderReportsList();
-            document.getElementById('reportDetailsContent').innerHTML = `<div class="empty-details"><i class="fas fa-flag"></i><p>Select a report to view details</p></div>`;
-            document.getElementById('reportActions').style.display = 'none';
-            showToast("Gig deleted", "success");
-        });
-    }
-}
-
-function dismissSelectedReport() {
-    if (selectedReport) {
-        showConfirmModal("Dismiss Report", "Are you sure you want to dismiss this report?", () => {
-            reportsData = reportsData.filter(r => r.id !== selectedReport.id);
-            selectedReport = null;
-            renderReportsList();
-            document.getElementById('reportDetailsContent').innerHTML = `<div class="empty-details"><i class="fas fa-flag"></i><p>Select a report to view details</p></div>`;
-            document.getElementById('reportActions').style.display = 'none';
-            showToast("Report dismissed", "success");
-        });
-    }
-}
-
+// ========== CLOSE GIG DETAILS MODAL ==========
 function closeGigDetailsModal() {
-    document.getElementById('gigDetailsModal').classList.remove('active');
+    const modal = document.getElementById('gigDetailsModal');
+    if (modal) modal.classList.remove('active');
 }
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', () => {
     fetchAdminAvatar();
     
-    // Make the Users tab active by default and load sellers
     setTimeout(() => {
         if (typeof loadUsers === 'function') {
             loadUsers('sellers');
