@@ -166,6 +166,22 @@ async function fetchUserData() {
 // ========================================
 // STATS
 // ========================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadCountries();
+    fetchUserData();
+    updateStats();
+    loadProfile();
+    setupAvatarUpload();
+    renderLanguages();
+    setupMethodButtons();
+    setupCharCounter();
+    setupAutoResize();
+    updateSidebarProfile();
+   
+    renderOrders();     // يعرض واجهة الطلبات
+    renderTransactions();
+});
+
 function updateStats() {
     const availableBalance = document.getElementById('availableBalance');
     const pendingBalance = document.getElementById('pendingBalance');

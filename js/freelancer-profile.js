@@ -1,96 +1,70 @@
 /**
  * Freelancer Profile Page JavaScript
- * Handles loading freelancer data and gigs from database
+ * Fetches real data from database using GigController
  */
 
-// Freelancer Data - Ready for database integration
-const freelancerData = {
-    id: 1,
-    name: "Ahmed Mansour",
-    email: "ahmed.mansour@taskly.com",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    country: "Cairo, Egypt",
-    bio: "Full-Stack Developer with 7+ years of experience. I build high-quality web applications with clean code and attention to detail. I deliver projects on time and provide ongoing support.",
-    skills: "JavaScript, React, Node.js, Python, HTML5, CSS3, MongoDB, Git",
-    languages: ["English", "Arabic", "French"],
-    level: "Pro",
-    rating: 4.9,
-    totalOrders: 247,
-    memberSince: "2022"
-};
+const GIG_API = '/Taskly/controllers/GigController.php';
+const USER_API = '/Taskly/controllers/UserController.php';
 
-// Gigs Data - 8 gigs total
-const gigsData = [
-    {
-        id: 1,
-        title: "Modern Web Development with React & Node.js",
-        category: "Web Development",
-        price: 350,
-        rating: 4.9,
-        image: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=800"
-    },
-    {
-        id: 2,
-        title: "React & Next.js Expert - Modern Frontend Development",
-        category: "Frontend",
-        price: 280,
-        rating: 5.0,
-        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800"
-    },
-    {
-        id: 3,
-        title: "RESTful API Development with Node.js & Express",
-        category: "Backend",
-        price: 420,
-        rating: 4.8,
-        image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800"
-    },
-    {
-        id: 4,
-        title: "Complete Full Stack Web Application Development",
-        category: "Full Stack",
-        price: 550,
-        rating: 4.7,
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800"
-    },
-    {
-        id: 5,
-        title: "Mobile App UI/UX Design with Figma",
-        category: "Design",
-        price: 180,
-        rating: 4.9,
-        image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?w=800"
-    },
-    {
-        id: 6,
-        title: "SEO Optimization & Digital Marketing Package",
-        category: "Marketing",
-        price: 320,
-        rating: 4.8,
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800"
-    },
-    {
-        id: 7,
-        title: "Professional Video Editing & Animation",
-        category: "Video",
-        price: 250,
-        rating: 4.9,
-        image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800"
-    },
-    {
-        id: 8,
-        title: "Content Writing & Copywriting Services",
-        category: "Writing",
-        price: 120,
-        rating: 4.8,
-        image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800"
+let sellerId = null;
+
+// ── GET URL PARAMETERS ────────────────────────────────────────
+function getUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    sellerId = urlParams.get('id');
+    return sellerId;
+}
+
+// ── FETCH SELLER PROFILE ──────────────────────────────────────
+async function fetchSellerProfile() {
+    try {
+        // Try to get from GigController first (it has seller data from gigs)
+        const response = await fetch(`${GIG_API}?action=seller_profile&seller_id=${sellerId}`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            return result.data;
+        }
+        
+        // Fallback: Get from UserController if available
+        const userResponse = await fetch(`${USER_API}?action=get_seller&id=${sellerId}`);
+        const userResult = await userResponse.json();
+        
+        if (userResult.success && userResult.data) {
+            return userResult.data;
+        }
+        
+        throw new Error('Seller not found');
+    } catch (error) {
+        console.error('Error fetching seller:', error);
+        return null;
     }
-];
+}
 
-/**
- * Load freelancer data into the page
- */
-function loadFreelancerData() {
+// ── FETCH SELLER'S GIGS ───────────────────────────────────────
+async function fetchSellerGigs() {
+    try {
+        const response = await fetch(`${GIG_API}?action=seller_gigs&seller_id=${sellerId}&limit=10`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            return result.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching gigs:', error);
+        return [];
+    }
+}
+
+// ── LOAD PROFILE DATA ─────────────────────────────────────────
+async function loadProfile() {
+    const profile = await fetchSellerProfile();
+    if (!profile) {
+        showError('Seller not found');
+        return;
+    }
+    
     // Basic info
     const nameEl = document.getElementById('freelancer-name');
     const countryEl = document.getElementById('freelancer-country');
@@ -99,36 +73,64 @@ function loadFreelancerData() {
     const emailEl = document.getElementById('freelancer-email');
     const avatarEl = document.getElementById('profile-avatar');
     
-    if (nameEl) nameEl.textContent = freelancerData.name;
-    if (countryEl) countryEl.textContent = freelancerData.country;
-    if (bioEl) bioEl.textContent = freelancerData.bio;
-    if (skillsEl) skillsEl.textContent = freelancerData.skills;
-    if (emailEl) emailEl.textContent = freelancerData.email;
-    if (avatarEl) avatarEl.src = freelancerData.avatar;
+    if (nameEl) nameEl.textContent = profile.name || 'Unknown Seller';
+    if (countryEl) countryEl.textContent = profile.country_name || profile.country || 'Location not specified';
+    if (bioEl) bioEl.textContent = profile.bio || profile.about_me || 'No bio available';
+    if (skillsEl) skillsEl.textContent = profile.skills || profile.experience || 'No skills listed';
+    if (emailEl) emailEl.textContent = profile.email || 'Email not available';
     
-    // Load languages
+    // Avatar
+    if (avatarEl) {
+        if (profile.avatar && profile.avatar !== 'null' && profile.avatar !== '') {
+            avatarEl.src = profile.avatar;
+        } else if (profile.picture_name) {
+            avatarEl.src = `/Taskly/uploads/avatars/${profile.picture_name}`;
+        } else {
+            avatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=7c3aed&color=fff&size=135`;
+        }
+    }
+    
+    // Languages
     const languagesContainer = document.getElementById('freelancer-languages');
     if (languagesContainer) {
-        languagesContainer.innerHTML = '';
-        freelancerData.languages.forEach(lang => {
-            const langDiv = document.createElement('div');
-            langDiv.className = 'language-item';
-            langDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${lang}`;
-            languagesContainer.appendChild(langDiv);
-        });
+        const languages = profile.languages || [];
+        if (languages.length === 0) {
+            languagesContainer.innerHTML = '<div class="language-item">No languages specified</div>';
+        } else {
+            languagesContainer.innerHTML = '';
+            languages.forEach(lang => {
+                const langDiv = document.createElement('div');
+                langDiv.className = 'language-item';
+                langDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${typeof lang === 'string' ? lang : lang.name}`;
+                languagesContainer.appendChild(langDiv);
+            });
+        }
     }
     
-    // Load level
+    // Level
     const levelEl = document.getElementById('freelancer-level');
     if (levelEl) {
-        levelEl.innerHTML = `<i class="fas fa-crown"></i> ${freelancerData.level}`;
+        const levelMap = {
+            'raising star': 'Raising Star',
+            'top rated': 'Top Rated',
+            'pro': 'Pro',
+            1: 'Raising Star',
+            2: 'Top Rated',
+            3: 'Pro'
+        };
+        const level = profile.level || profile.seller_level || 'raising star';
+        levelEl.innerHTML = `<i class="fas fa-crown"></i> ${levelMap[level] || 'Seller'}`;
     }
     
-    // Load rating stars
+    // Rating stars
     const ratingContainer = document.getElementById('freelancer-rating');
+    const ordersEl = document.getElementById('freelancer-orders');
+    const rating = parseFloat(profile.rating || profile.gigRating || 0);
+    const totalOrders = profile.total_orders || profile.totalOrders || 0;
+    
     if (ratingContainer) {
-        const fullStars = Math.floor(freelancerData.rating);
-        const hasHalfStar = freelancerData.rating % 1 >= 0.5;
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 >= 0.5;
         
         ratingContainer.innerHTML = '';
         for (let i = 0; i < fullStars; i++) {
@@ -143,36 +145,41 @@ function loadFreelancerData() {
         }
     }
     
-    // Load orders count
-    const ordersEl = document.getElementById('freelancer-orders');
     if (ordersEl) {
-        ordersEl.textContent = `${freelancerData.rating} · ${freelancerData.totalOrders} orders`;
+        ordersEl.textContent = `${rating.toFixed(1)} · ${totalOrders} orders`;
     }
 }
 
-/**
- * Load gigs into the page
- */
-function loadGigs() {
+// ── LOAD GIGS ─────────────────────────────────────────────────
+async function loadGigs() {
     const container = document.getElementById('gigs-container');
     if (!container) return;
     
+    container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-pulse"></i> Loading gigs...</div>';
+    
+    const gigs = await fetchSellerGigs();
+    
+    if (gigs.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i> No gigs published yet</div>';
+        return;
+    }
+    
     container.innerHTML = '';
     
-    gigsData.forEach(gig => {
+    gigs.forEach(gig => {
         const gigCard = document.createElement('div');
         gigCard.className = 'gig-card';
         gigCard.onclick = () => window.location.href = `gig-details.html?id=${gig.id}`;
         
         gigCard.innerHTML = `
             <div class="gig-image-container">
-                <img src="${gig.image}" alt="${gig.title}" loading="lazy">
+                <img src="${gig.image || '/Taskly/images/default-gig.jpg'}" alt="${escapeHtml(gig.title)}" loading="lazy" onerror="this.src='/Taskly/images/default-gig.jpg'">
             </div>
             <div class="gig-body-content">
-                <span class="gig-category-badge">${gig.category}</span>
-                <h3 class="gig-title-text">${gig.title}</h3>
+                <span class="gig-category-badge">${escapeHtml(gig.category)}</span>
+                <h3 class="gig-title-text">${escapeHtml(gig.title)}</h3>
                 <div class="gig-footer-info">
-                    <span class="rating-display"><i class="fas fa-star"></i> ${gig.rating}</span>
+                    <span class="rating-display"><i class="fas fa-star"></i> ${gig.rating || 'New'}</span>
                     <span class="price-value-text">$${gig.price}</span>
                 </div>
             </div>
@@ -182,13 +189,40 @@ function loadGigs() {
     });
 }
 
-/**
- * Initialize the page
- */
-function init() {
-    loadFreelancerData();
-    loadGigs();
+// ── ERROR STATE ───────────────────────────────────────────────
+function showError(message) {
+    const wrapper = document.getElementById('profile-wrapper');
+    if (wrapper) {
+        wrapper.innerHTML = `
+            <div class="glass-card" style="text-align: center; padding: 60px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #ef4444;"></i>
+                <h2>${escapeHtml(message)}</h2>
+                <button onclick="goBack()" class="btn-buy" style="margin-top: 20px; padding: 12px 24px; background: #7c3aed; color: white; border: none; border-radius: 12px; cursor: pointer;">Go Back</button>
+            </div>
+        `;
+    }
 }
 
-// Run initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+// ── HELPER FUNCTIONS ──────────────────────────────────────────
+function escapeHtml(value) {
+    if (!value) return '';
+    return String(value).replace(/[&<>]/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;'
+    })[m]);
+}
+
+function goBack() {
+    window.history.back();
+}
+
+// ── INITIALIZATION ────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    const id = getUrlParams();
+    if (!id) {
+        showError('No seller ID provided');
+        return;
+    }
+    
+    await loadProfile();
+    await loadGigs();
+});

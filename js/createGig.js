@@ -5,50 +5,47 @@
 const CAT_API = '/Taskly/controllers/CategoryController.php';
 const GIG_API = '/Taskly/controllers/GigController.php';
 
+// Store all selected files across multiple picks
+let selectedImageFiles = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchUserAvatar();
     loadCategories();
 
     // ── IMAGE UPLOAD PREVIEW ─────────────────────────────────
-    const imgInput        = document.getElementById('imgInput');
-    const previewContainer = document.getElementById('imagePreviewContainer');
+    const imgInput         = document.getElementById('imgInput');
+    const previewContainer = document.getElementById('imgInput').closest('.image-upload-grid');
+
+   
 
     if (imgInput) {
         imgInput.addEventListener('change', function () {
-            if (this.files.length > 20) {
-                showToast('You can only upload up to 20 images', 'error');
-                this.value = '';
-                return;
-            }
-
-            previewContainer.innerHTML = '';
-
-            [...this.files].forEach(file => {
-                if (!file.type.startsWith('image/')) {
-                    showToast(`File ${file.name} is not an image`, 'error');
-                    return;
-                }
+            Array.from(this.files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
                 if (file.size > 5 * 1024 * 1024) {
-                    showToast(`Image ${file.name} is larger than 5MB`, 'error');
+                    showToast(`${file.name} is larger than 5MB`, 'error');
                     return;
                 }
+                if (selectedImageFiles.length >= 20) {
+                    showToast('Maximum 20 images allowed', 'error');
+                    return;
+                }
+
+                selectedImageFiles.push(file);
+                const fileIndex = selectedImageFiles.length - 1;
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const div = document.createElement('div');
                     div.className = 'preview-sq-box';
                     div.style.backgroundImage = `url(${e.target.result})`;
-
-                    const del = document.createElement('div');
-                    del.className = 'del-btn';
-                    del.innerHTML = '<i class="fas fa-times"></i>';
-                    del.onclick = () => div.remove();
-
-                    div.appendChild(del);
+                    div.innerHTML = `<div class="del-btn" onclick="removeImage(this, ${fileIndex})">×</div>`;
                     previewContainer.appendChild(div);
                 };
                 reader.readAsDataURL(file);
             });
+
+            this.value = ''; // reset so same file can be re-picked
         });
     }
 
@@ -114,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Build FormData
             const submitBtn = gigForm.querySelector('.submit-btn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Gig...';
@@ -126,26 +122,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Build packages
             tiers.forEach(tierId => {
-                const tierKey    = tierId.split('-')[1]; // basic | standard | premium
+                const tierKey    = tierId.split('-')[1];
                 const listEl     = document.getElementById(tierId);
                 const parentCard = listEl.closest('.p-card');
 
-                // Delivery — first .meta-num-input in the card
                 const allNumInputs = parentCard.querySelectorAll('.meta-num-input');
                 const timeVal      = allNumInputs[0]?.value || '1';
                 const unitVal      = parentCard.querySelectorAll('.meta-unit-select')[0]?.value || 'days';
 
-                // Convert hours to days if needed
                 let deliveryDays = parseInt(timeVal) || 1;
-                if (unitVal === 'hours') {
-                    deliveryDays = Math.ceil(deliveryDays / 24) || 1;
-                }
+                if (unitVal === 'hours') deliveryDays = Math.ceil(deliveryDays / 24) || 1;
 
-                // Revisions — second .meta-num-input in the card
-                const revSelect = parentCard.querySelectorAll('.meta-unit-select')[1];
-                const revNum    = allNumInputs[1];
-                let revisionsVal = 999; // unlimited default
-
+                const revSelect  = parentCard.querySelectorAll('.meta-unit-select')[1];
+                const revNum     = allNumInputs[1];
+                let revisionsVal = 999;
                 if (revSelect && revSelect.value === 'limited') {
                     revisionsVal = parseInt(revNum?.value) || 0;
                 }
@@ -154,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append(`packages[${tierKey}][delivery_time_days]`, deliveryDays);
                 formData.append(`packages[${tierKey}][revisions_allowed]`,  revisionsVal);
 
-                // Features
                 listEl.querySelectorAll('.li-input').forEach(input => {
                     if (input.value.trim() !== '') {
                         formData.append(`packages[${tierKey}][features][]`, input.value.trim());
@@ -162,14 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Images
-            if (imgInput && imgInput.files.length > 0) {
-                for (let i = 0; i < imgInput.files.length; i++) {
-                    formData.append('images[]', imgInput.files[i]);
-                }
-            }
+            // Append all stored images
+            selectedImageFiles.forEach(file => {
+                formData.append('images[]', file);
+            });
 
-            // Send to controller
             try {
                 const response = await fetch(`${GIG_API}?action=create`, {
                     method: 'POST',
@@ -197,6 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ── REMOVE IMAGE ──────────────────────────────────────────────
+function removeImage(btn, index) {
+    selectedImageFiles.splice(index, 1);
+    btn.parentElement.remove();
+}
+
 // ── LOAD CATEGORIES FROM DB ───────────────────────────────────
 async function loadCategories() {
     const mainCat = document.getElementById('mainCategory');
@@ -209,8 +201,8 @@ async function loadCategories() {
         if (data.success && data.data.length > 0) {
             mainCat.innerHTML = '<option value="" disabled selected>Select Category</option>';
             data.data.forEach(cat => {
-                const option    = document.createElement('option');
-                option.value    = cat.id;
+                const option       = document.createElement('option');
+                option.value       = cat.id;
                 option.textContent = cat.name;
                 mainCat.appendChild(option);
             });
@@ -220,16 +212,14 @@ async function loadCategories() {
     }
 }
 
-// ── LOAD SUBCATEGORIES FOR A SELECTED CATEGORY ───────────────
+// ── LOAD SUBCATEGORIES ────────────────────────────────────────
 async function loadSubcategories(categoryId, subCatEl) {
     if (!categoryId || !subCatEl) return;
-
     subCatEl.innerHTML = '<option value="" disabled selected>Loading...</option>';
 
     try {
         const res  = await fetch(`${CAT_API}?action=get_subs&category_id=${categoryId}`);
         const data = await res.json();
-
         subCatEl.innerHTML = '<option value="" disabled selected>Select Sub-category</option>';
 
         if (data.success && data.data.length > 0) {
@@ -243,7 +233,6 @@ async function loadSubcategories(categoryId, subCatEl) {
             subCatEl.innerHTML = '<option value="" disabled selected>No subcategories found</option>';
         }
     } catch (err) {
-        console.error('Error loading subcategories:', err);
         subCatEl.innerHTML = '<option value="" disabled selected>Failed to load</option>';
     }
 }
@@ -256,9 +245,7 @@ function addNewItem(listId) {
 
     if (lastInput && lastInput.value.trim() === '') {
         showToast('Please fill the current feature before adding a new one', 'error');
-        lastInput.classList.add('shake-input');
         lastInput.style.borderBottomColor = '#ef4444';
-        setTimeout(() => lastInput.classList.remove('shake-input'), 400);
         lastInput.focus();
         return;
     }
@@ -270,22 +257,17 @@ function addNewItem(listId) {
         <i class="fas fa-times del-item-icon" style="color:#ef4444;cursor:pointer;font-size:0.7rem;margin-left:10px" onclick="this.parentElement.remove()"></i>
     `;
     list.appendChild(li);
-    const newInput = li.querySelector('input');
-    newInput.focus();
-    newInput.addEventListener('input', function () {
-        this.style.borderBottomColor = 'rgba(255,255,255,0.05)';
-    });
+    li.querySelector('input').focus();
 }
 
 // ── TOGGLE UNLIMITED REVISIONS ────────────────────────────────
 function toggleUnlimited(selectElement) {
-    const numInput = selectElement.previousElementSibling;
+    const wrapper  = selectElement.closest('.meta-input-flex');
+    const numInput = wrapper ? wrapper.querySelector('.meta-num-input') : null;
     if (selectElement.value === 'unlimited') {
-        numInput.classList.add('hidden');
-        numInput.value = '';
+        if (numInput) { numInput.style.visibility = 'hidden'; numInput.value = ''; }
     } else {
-        numInput.classList.remove('hidden');
-        numInput.placeholder = 'No.';
+        if (numInput) numInput.style.visibility = 'visible';
     }
 }
 
@@ -311,17 +293,15 @@ async function fetchUserAvatar() {
 function showToast(message, type = 'info') {
     const container = document.getElementById('notification-container');
     if (!container) return;
-
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
     toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.style.animation = 'fadeOut 0.5s ease forwards';
         setTimeout(() => toast.remove(), 500);
     }, 3500);
 }
 
-function goBack()       { window.location.href = '/Taskly/pages/sellerDashboard.html?tab=gigs'; }
+function goBack() { window.location.href = '/Taskly/pages/sellerDashboard.html?tab=gigs'; }

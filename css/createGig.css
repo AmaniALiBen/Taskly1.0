@@ -168,7 +168,9 @@
     cursor: pointer;
     color: var(--text-muted);
 }
-
+.preview-area-flex {
+    display: contents;
+}
 .upload-sq-box:hover {
     border-color: var(--primary-color);
     color: #fff;
