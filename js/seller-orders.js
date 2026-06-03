@@ -1,178 +1,215 @@
-// ============================================
-// SELLER ORDERS - SELLER DASHBOARD
-// ============================================
+// ========================================
+// SELLER ORDERS - WITH DATABASE INTEGRATION
+// ========================================
 
-const ORDER_API = '/Taskly/controllers/OrderController.php';
+const ORDERS_API = '/Taskly/controllers/OrderController.php';
 
-let sellerOrders  = [];
+let sellerOrdersData = [];
 let currentOrderFilter = 'all';
 
-
-// ============================================
-// LOAD ORDERS FROM DATABASE
-// ============================================
+// ========================================
+// LOAD SELLER ORDERS FROM DATABASE
+// ========================================
 async function loadSellerOrders() {
-    const listEl = document.getElementById('orders-list');
-    if (!listEl) return;
-
-    listEl.innerHTML = `
-        <div class="loading-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading orders...</p>
-        </div>`;
-
+    const container = document.getElementById('orders-list');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading orders...</p></div>';
+    
     try {
-        const response = await fetch(`${ORDER_API}?action=seller_orders`);
-        const result   = await response.json();
-
-        if (result.success) {
-            sellerOrders = result.data;
-            updateOrderStats();
-            filterOrders(currentOrderFilter);
+        const response = await fetch(`${ORDERS_API}?action=seller_orders`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // ✅ لا نقوم بتصفية الطلبات الملغاة - تظهر كل الطلبات
+            sellerOrdersData = result.data;
+            console.log('Seller orders loaded:', sellerOrdersData);
+            updateSellerStats();
+            renderSellerOrders(currentOrderFilter);
         } else {
-            listEl.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <p>${result.message || 'Failed to load orders'}</p>
-                </div>`;
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No orders found</p></div>';
         }
     } catch (error) {
-        console.error('Error loading orders:', error);
-        listEl.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-exclamation-circle"></i>
-                <p>Connection error</p>
-            </div>`;
+        console.error('Error loading seller orders:', error);
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Error loading orders</p></div>';
     }
 }
 
-// ============================================
-// UPDATE STATS CARDS
-// ============================================
-function updateOrderStats() {
-    const total     = document.getElementById('total-orders-card');
-    const active    = document.getElementById('active-orders-count');
-    const completed = document.getElementById('completed-count');
-    const awaiting  = document.getElementById('awaiting-count');
-
-    if (total)     total.innerText     = sellerOrders.length;
-    if (active)    active.innerText    = sellerOrders.filter(o => o.status === 'in_progress' || o.status === 'in_revision' || o.status === 'delivered').length;
-    if (completed) completed.innerText = sellerOrders.filter(o => o.status === 'completed').length;
-    if (awaiting)  awaiting.innerText  = sellerOrders.filter(o => o.status === 'awaiting_requirements').length;
+// ========================================
+// UPDATE SELLER STATS
+// ========================================
+function updateSellerStats() {
+    const totalOrders = sellerOrdersData.length;
+    const activeOrders = sellerOrdersData.filter(o => o.status === 'in_progress' || o.status === 'delivered').length;
+    const completedOrders = sellerOrdersData.filter(o => o.status === 'completed').length;
+    const awaitingOrders = sellerOrdersData.filter(o => o.status === 'awaiting_requirements').length;
+    const cancelledOrders = sellerOrdersData.filter(o => o.status === 'cancelled').length;
+    
+    const totalEarned = sellerOrdersData
+        .filter(o => o.status === 'completed')
+        .reduce((sum, order) => sum + parseFloat(order.price || 0), 0);
+    
+    const totalOrdersCard = document.getElementById('total-orders-card');
+    const activeOrdersCount = document.getElementById('active-orders-count');
+    const completedCount = document.getElementById('completed-count');
+    const awaitingCount = document.getElementById('awaiting-count');
+    const totalEarnedElement = document.getElementById('total-earned');
+    
+    if (totalOrdersCard) totalOrdersCard.textContent = totalOrders;
+    if (activeOrdersCount) activeOrdersCount.textContent = activeOrders;
+    if (completedCount) completedCount.textContent = completedOrders;
+    if (awaitingCount) awaitingCount.textContent = awaitingOrders;
+    if (totalEarnedElement) totalEarnedElement.textContent = `$${totalEarned.toFixed(2)}`;
 }
 
-// ============================================
-// STATUS DISPLAY MAP
-// ============================================
-function getStatusDisplay(status) {
-    const map = {
-        'awaiting_requirements': { label: 'Awaiting Requirements', code: 'warning'   },
-        'in_progress':           { label: 'In Progress',           code: 'active'    },
-        'delivered':             { label: 'Delivered',             code: 'completed' },
-        'in_revision':           { label: 'In Revision',           code: 'warning'   },
-        'completed':             { label: 'Completed',             code: 'completed' },
-        'cancelled':             { label: 'Cancelled',             code: 'cancelled' }
-    };
-    return map[status] || { label: status, code: 'active' };
-}
-
-function getFilterCode(status) {
-    if (status === 'awaiting_requirements')                          return 'awaiting';
-    if (status === 'in_progress' || status === 'in_revision' || status === 'delivered') return 'active';
-    if (status === 'completed')                                      return 'completed';
-    if (status === 'cancelled')                                      return 'cancelled';
-    return 'active';
-}
-
-// ============================================
-// FILTER & RENDER ORDERS
-// ============================================
-function filterOrders(filter) {
-    currentOrderFilter = filter;
-
-    // Update active tab
-    document.querySelectorAll('#orders-tab .tab-item').forEach(tab => {
-        tab.classList.remove('active');
-        if (tab.innerText.trim().toLowerCase().includes(filter === 'awaiting' ? 'awaiting' : filter)) {
-            tab.classList.add('active');
-        }
-    });
-
-    renderOrders(filter);
-}
-
-function renderOrders(filter) {
-    const listEl = document.getElementById('orders-list');
-    if (!listEl) return;
-
-    const filtered = filter === 'all' 
-             ? sellerOrders 
-             : sellerOrders.filter(o => getFilterCode(o.status) === filter);
+// ========================================
+// RENDER SELLER ORDERS
+// ========================================
+function renderSellerOrders(filter = 'all') {
+    const container = document.getElementById('orders-list');
+    if (!container) return;
+    
+    let filtered = [...sellerOrdersData];
+    
+    switch(filter) {
+        case 'awaiting':
+            filtered = sellerOrdersData.filter(o => o.status === 'awaiting_requirements');
+            break;
+        case 'active':
+            filtered = sellerOrdersData.filter(o => o.status === 'in_progress' || o.status === 'delivered');
+            break;
+        case 'completed':
+            filtered = sellerOrdersData.filter(o => o.status === 'completed');
+            break;
+        case 'cancelled':
+            filtered = sellerOrdersData.filter(o => o.status === 'cancelled');
+            break;
+        case 'all':
+        default:
+            filtered = sellerOrdersData;
+    }
+    
     if (filtered.length === 0) {
-        listEl.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                <p>No ${filter} orders</p>
-                <span>Orders will appear here when buyers place them</span>
-            </div>`;
+                <i class="fas fa-box-open"></i>
+                <p>No orders found</p>
+                <span>You don't have any ${filter} orders yet.</span>
+            </div>
+        `;
         return;
     }
-
-    listEl.innerHTML = filtered.map(order => {
-        const statusDisplay = getStatusDisplay(order.status);
-        const deadline      = order.deadline
-            ? new Date(order.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'No deadline';
-
-        const buyerAvatar = (order.buyer_avatar && order.buyer_avatar !== 'null')
-            ? order.buyer_avatar
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(order.buyer_name || 'B')}&background=7c3aed&color=fff&size=40`;
-
-            
-
+    
+    container.innerHTML = filtered.map(order => {
+        let badgeClass = '';
+        let statusText = '';
+        let isCancelled = (order.status === 'cancelled');
+        
+        switch(order.status) {
+            case 'awaiting_requirements':
+                badgeClass = 'status-awaiting';
+                statusText = 'Awaiting Requirements';
+                break;
+            case 'in_progress':
+                badgeClass = 'status-active';
+                statusText = 'In Progress';
+                break;
+            case 'delivered':
+                badgeClass = 'status-active';
+                statusText = 'Delivered';
+                break;
+            case 'completed':
+                badgeClass = 'status-completed';
+                statusText = 'Completed';
+                break;
+            case 'cancelled':
+                badgeClass = 'status-cancelled';
+                statusText = 'Cancelled';
+                break;
+            default:
+                badgeClass = 'status-awaiting';
+                statusText = order.status || 'Unknown';
+        }
+        
+        const deadlineDate = order.deadline ? new Date(order.deadline).toLocaleDateString() : '-';
+        const orderImage = order.gig_image || '../images/default-gig.jpg';
+        
+        // ✅ إذا كان الطلب ملغى، نضيف cursor: default و no onclick
+        const onclickAttr = isCancelled ? '' : `onclick="goToOrder(${order.id})"`;
+        const cursorStyle = isCancelled ? 'cursor: default; opacity: 0.7;' : 'cursor: pointer;';
+        
         return `
-            <div class="order-card" onclick="goToOrderTracking(${order.id})">
+            <div class="order-card" style="${cursorStyle}" ${onclickAttr}>
                 <div class="order-img-container">
-                    <img src="${order.gig_image || '/Taskly/images/default-gig.jpg'}"
-                         class="order-img"
-                         alt="${escapeHtml(order.gig_title)}"
-                         onerror="this.src='/Taskly/images/default-gig.jpg'">
+                    <img src="${orderImage}" class="order-img" alt="${escapeHtml(order.gig_title)}">
                 </div>
                 <div class="order-details-flex">
                     <div class="order-main-info">
-                        <h3>${escapeHtml(order.gig_title)}</h3>
-                        <div class="seller">
-                            <img src="${buyerAvatar}" onerror="this.src='https://ui-avatars.com/api/?name=B&background=7c3aed&color=fff&size=40'">
-                            <span>${escapeHtml(order.buyer_name)}</span>
+                        <h3>${escapeHtml(order.gig_title || 'Gig Title')}</h3>
+                        <div class="buyer">
+                            <img src="${order.buyer_avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.buyer_name || 'B') + '&background=7c3aed&color=fff'}" onerror="this.src='https://ui-avatars.com/api/?name=B&background=7c3aed&color=fff'">
+                            <span>${escapeHtml(order.buyer_name || 'Buyer')}</span>
                         </div>
                     </div>
                     <div class="order-meta-group">
                         <div class="meta-item">
-                            <span class="label">Due Date</span>
-                            <span class="value">${deadline}</span>
+                            <span class="label">Amount</span>
+                            <span class="value price-value">$${parseFloat(order.price || 0).toFixed(2)}</span>
                         </div>
-                        <div class="status-badge status-${statusDisplay.code}">
-                            ${statusDisplay.label}
+                        <div class="meta-item">
+                            <span class="label">Due Date</span>
+                            <span class="value">${deadlineDate}</span>
+                        </div>
+                        <div class="status-badge ${badgeClass}">
+                            ${statusText}
                         </div>
                     </div>
                 </div>
-            </div>`;
+            </div>
+        `;
     }).join('');
 }
 
-// ============================================
-// NAVIGATION
-// ============================================
-function goToOrderTracking(orderId) {
-    window.location.href = `freelancerOrderTracking.html?id=${orderId}`;
+// ========================================
+// FILTER ORDERS
+// ========================================
+function filterOrders(type) {
+    currentOrderFilter = type;
+    
+    document.querySelectorAll('.tab-item').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.innerText.toLowerCase().replace(/\s/g, '') === type || 
+            (type === 'all' && tab.innerText === 'All')) {
+            tab.classList.add('active');
+        }
+    });
+    
+    renderSellerOrders(type);
 }
 
-// ============================================
-// HELPERS
-// ============================================
+// ========================================
+// GO TO ORDER DETAILS
+// ========================================
+function goToOrder(orderId) {
+    window.location.href = `FreelancerOrderTracking.html?id=${orderId}`;
+}
+
+// ========================================
+// INITIALIZE SELLER ORDERS
+// ========================================
+function initSellerOrders() {
+    loadSellerOrders();
+}
+
+// ========================================
+// HELPER FUNCTION
+// ========================================
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-    })[m]);
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }

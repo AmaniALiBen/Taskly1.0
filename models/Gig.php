@@ -64,6 +64,53 @@ class Gig {
         }
         return false;
     }
+// =========================================================================
+// UPDATE SELLER LEVEL BASED ON AVERAGE GIGS RATING ONLY
+// =========================================================================
+public function updateSellerLevel($seller_id) {
+    try {
+        // حساب متوسط تقييمات جميع خدمات البائع
+        $stmt = $this->db->prepare("
+            SELECT 
+                AVG(g.rating) as avg_rating
+            FROM gigs g
+            WHERE g.seller_id = ? AND g.is_deleted = FALSE
+        ");
+        $stmt->execute([$seller_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $avgRating = $result['avg_rating'] ? round($result['avg_rating']) : 0;
+        
+        // تحديد المستوى بناءً على متوسط التقييمات فقط
+        $newLevel = 'raising star';
+        
+        if ($avgRating == 5) {
+            $newLevel = 'pro';
+        } elseif ($avgRating >= 3) {
+            $newLevel = 'top rated';
+        } else {
+            $newLevel = 'raising star';
+        }
+        
+        // تحديث مستوى البائع في جدول seller_details
+        $stmt = $this->db->prepare("
+            UPDATE seller_details 
+            SET level = ? 
+            WHERE seller_id = ?
+        ");
+        $stmt->execute([$newLevel, $seller_id]);
+        
+        return [
+            'success' => true,
+            'new_level' => $newLevel,
+            'avg_rating' => $avgRating
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Error updating seller level: " . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
 
     public function updatePackage($gig_id, $package_type, $price, $delivery_time_days, $revisions_allowed) {
         $stmt = $this->db->prepare(
@@ -287,92 +334,98 @@ class Gig {
     // 7. GIG DETAILS PAGE
     // =========================================================================
 
-    public function getPublicGigDetails($gig_id) {
-        $stmt = $this->db->prepare("
-            SELECT
-                g.id, g.title, g.description,
-                g.seller_id,
-                u.name as seller_name,
-                CONCAT('/Taskly/avatars/sellers/', u.picture_name) as avatar,
-                sd.level as seller_level,
-                COALESCE(g.rating, 0) as rating,
-                0 as review_count
-            FROM gigs g
-            JOIN users u ON u.id = g.seller_id
-            JOIN seller_details sd ON sd.seller_id = g.seller_id
-            WHERE g.id = ? AND g.is_active = 1 AND g.is_deleted = 0
-        ");
-        $stmt->execute([$gig_id]);
-        $gig = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$gig) return null;
+   public function getPublicGigDetails($gig_id) {
+    $stmt = $this->db->prepare("
+        SELECT
+            g.id, g.title, g.description,
+            g.seller_id,
+            u.name as seller_name,
+            CONCAT('/Taskly/avatars/sellers/', u.picture_name) as avatar,
+            sd.level as seller_level,
+            COALESCE(g.rating, 0) as rating,
+            (
+                SELECT COUNT(DISTINCT o.id)
+                FROM orders o
+                JOIN gig_packages gp ON o.package_id = gp.id
+                WHERE gp.gig_id = g.id 
+                AND o.status = 'completed' 
+                AND o.rating_score IS NOT NULL
+            ) as review_count
+        FROM gigs g
+        JOIN users u ON u.id = g.seller_id
+        JOIN seller_details sd ON sd.seller_id = g.seller_id
+        WHERE g.id = ? AND g.is_active = 1 AND g.is_deleted = 0
+    ");
+    $stmt->execute([$gig_id]);
+    $gig = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$gig) return null;
 
-        $packagesStmt = $this->db->prepare("
-            SELECT * FROM gig_packages
-            WHERE gig_id = ?
-            ORDER BY FIELD(package_type, 'basic', 'standard', 'premium')
-        ");
-        $packagesStmt->execute([$gig_id]);
-        $packages = $packagesStmt->fetchAll();
+    $packagesStmt = $this->db->prepare("
+        SELECT * FROM gig_packages
+        WHERE gig_id = ?
+        ORDER BY FIELD(package_type, 'basic', 'standard', 'premium')
+    ");
+    $packagesStmt->execute([$gig_id]);
+    $packages = $packagesStmt->fetchAll();
 
-        $formattedPackages = [];
-        foreach ($packages as $pkg) {
-            $type = $pkg['package_type'];
+    $formattedPackages = [];
+    foreach ($packages as $pkg) {
+        $type = $pkg['package_type'];
 
-            $featuresStmt = $this->db->prepare(
-                "SELECT feature_text FROM package_features WHERE package_id = ? ORDER BY id ASC"
-            );
-            $featuresStmt->execute([$pkg['id']]);
-            $features    = $featuresStmt->fetchAll(PDO::FETCH_COLUMN);
-            $isUnlimited = (int)$pkg['revisions_allowed'] >= 999;
+        $featuresStmt = $this->db->prepare(
+            "SELECT feature_text FROM package_features WHERE package_id = ? ORDER BY id ASC"
+        );
+        $featuresStmt->execute([$pkg['id']]);
+        $features    = $featuresStmt->fetchAll(PDO::FETCH_COLUMN);
+        $isUnlimited = (int)$pkg['revisions_allowed'] >= 999;
 
-            $days     = (int)$pkg['delivery_time_days'];
-            $delivery = $days === 1 ? '1 Day Delivery' : "{$days} Days Delivery";
+        $days     = (int)$pkg['delivery_time_days'];
+        $delivery = $days === 1 ? '1 Day Delivery' : "{$days} Days Delivery";
 
-            $revisions = $isUnlimited
-                ? 'Unlimited Revisions'
-                : ((int)$pkg['revisions_allowed'] === 0
-                    ? 'No Revisions'
-                    : $pkg['revisions_allowed'] . ' Revision' . ($pkg['revisions_allowed'] > 1 ? 's' : ''));
+        $revisions = $isUnlimited
+            ? 'Unlimited Revisions'
+            : ((int)$pkg['revisions_allowed'] === 0
+                ? 'No Revisions'
+                : $pkg['revisions_allowed'] . ' Revision' . ($pkg['revisions_allowed'] > 1 ? 's' : ''));
 
-            $formattedPackages[$type] = [
-                'id'        => (int)$pkg['id'],
-                'name'      => ucfirst($type),
-                'price'     => (float)$pkg['price'],
-                'desc'      => '',
-                'delivery'  => $delivery,
-                'revisions' => $revisions,
-                'features'  => $features
-            ];
-        }
-
-        $imagesStmt = $this->db->prepare("
-            SELECT CONCAT('/Taskly/uploads/gig-images/', id, '.', extension) as url
-            FROM gig_images WHERE gig_id = ? ORDER BY is_cover DESC, id ASC
-        ");
-        $imagesStmt->execute([$gig_id]);
-        $images = $imagesStmt->fetchAll(PDO::FETCH_COLUMN);
-
-        $levelMap = [
-            'raising star' => 1,
-            'top rated'    => 2,
-            'pro'          => 3
-        ];
-
-        return [
-            'id'             => (int)$gig['id'],
-            'title'          => $gig['title'],
-            'desc'           => $gig['description'],
-            'sellerId'       => (int)$gig['seller_id'],
-            'seller'         => $gig['seller_name'],
-            'avatar'          => $gig['avatar'] ?? null,
-            'sellerLevel'    => $levelMap[$gig['seller_level']] ?? 1,
-            'gigRating'      => (float)$gig['rating'],
-            'gigReviewCount' => (int)$gig['review_count'],
-            'images'         => $images,
-            'packages'       => $formattedPackages
+        $formattedPackages[$type] = [
+            'id'        => (int)$pkg['id'],
+            'name'      => ucfirst($type),
+            'price'     => (float)$pkg['price'],
+            'desc'      => '',
+            'delivery'  => $delivery,
+            'revisions' => $revisions,
+            'features'  => $features
         ];
     }
 
+    $imagesStmt = $this->db->prepare("
+        SELECT CONCAT('/Taskly/uploads/gig-images/', id, '.', extension) as url
+        FROM gig_images WHERE gig_id = ? ORDER BY is_cover DESC, id ASC
+    ");
+    $imagesStmt->execute([$gig_id]);
+    $images = $imagesStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $levelMap = [
+        'raising star' => 1,
+        'top rated'    => 2,
+        'pro'          => 3
+    ];
+
+    return [
+        'id'             => (int)$gig['id'],
+        'title'          => $gig['title'],
+        'desc'           => $gig['description'],
+        'sellerId'       => (int)$gig['seller_id'],
+        'seller'         => $gig['seller_name'],
+        'avatar'          => $gig['avatar'] ?? null,
+        'sellerLevel'    => $levelMap[$gig['seller_level']] ?? 1,
+        'gigRating'      => (float)$gig['rating'],
+        'gigReviewCount' => (int)$gig['review_count'],
+        'images'         => $images,
+        'packages'       => $formattedPackages
+    ];
+}
     // =========================================================================
     // 8. REPORTS
     // =========================================================================

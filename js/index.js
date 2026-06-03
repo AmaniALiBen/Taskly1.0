@@ -39,12 +39,20 @@ function showToast(message, type = 'success') {
         document.body.appendChild(toast);
     }
     if (toastTimeout) clearTimeout(toastTimeout);
+    
+    // ✅ أضف هذا السطر - لإزالة أي كلاس قديم
+    toast.classList.remove('show', 'hide');
+    
     toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="margin-right: 8px;"></i> ${message}`;
     toast.className = `toast-notification ${type}`;
     toast.classList.add('show');
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+    
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        // ✅ أضف هذا السطر - لإضافة كلاس الاختفاء
+        toast.classList.add('hide');
+    }, 3000);
 }
-
 // ============================================
 // FETCH CATEGORIES FROM DATABASE
 // ============================================

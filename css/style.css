@@ -605,7 +605,10 @@ body {
 .toast-notification.show {
     transform: translateX(0);
 }
-
+.toast-notification.hide {
+    transform: translateX(450px);
+    opacity: 0;
+}
 /* Loading & Empty States */
 .loading-state,
 .empty-state {
@@ -856,3 +859,6 @@ body {
     background: #e11d48;
     transform: translateY(-2px);
 }
+
+
+

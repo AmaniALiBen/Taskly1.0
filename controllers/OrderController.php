@@ -148,6 +148,7 @@ switch ($action) {
             break;
         }
         
+        // التحقق من أن الطلب يخص هذا البائع
         $stmt = $db->prepare("SELECT id FROM orders WHERE id = ? AND seller_id = ?");
         $stmt->execute([$orderId, $seller_id]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -221,6 +222,29 @@ switch ($action) {
         echo json_encode(['success' => true, 'files' => $files]);
         break;
 
+    // ── UPDATE REVISIONS ─────────────────────────────────────
+    case 'update_revisions':
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        $userId = $_SESSION['user_id'] ?? 0;
+        $orderId = $input['order_id'] ?? 0;
+        $newRevisionsLeft = $input['left_revisions'] ?? 0;
+        
+        if ($userId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'You must be logged in']);
+            break;
+        }
+        
+        $stmt = $db->prepare("UPDATE orders SET left_revisions = ? WHERE id = ?");
+        $result = $stmt->execute([$newRevisionsLeft, $orderId]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Revisions updated']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update revisions']);
+        }
+        break;
+
     // ── DOWNLOAD ORDER FILE ───────────────────────────────────
     case 'download_file':
         $fileId = $_GET['file_id'] ?? 0;
@@ -240,9 +264,9 @@ switch ($action) {
             SELECT of.*, o.buyer_id, o.seller_id 
             FROM order_files of
             JOIN orders o ON of.order_id = o.id
-            WHERE of.id = ? AND (o.buyer_id = ? OR o.seller_id = ?)
+            WHERE of.id = ?
         ");
-        $stmt->execute([$fileId, $userId, $userId]);
+        $stmt->execute([$fileId]);
         $file = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$file) {
@@ -250,14 +274,36 @@ switch ($action) {
             break;
         }
         
+        if ($file['buyer_id'] != $userId && $file['seller_id'] != $userId) {
+            echo json_encode(['success' => false, 'message' => 'Not authorized']);
+            break;
+        }
+        
         $timestamp = strtotime($file['uploaded_at']);
         $savedName = $file['id'] . '_' . $timestamp . '.' . $file['extension'];
-        $filePath = $_SERVER['DOCUMENT_ROOT'] . '/Taskly/uploads/' . $file['file_type'] . 's/' . $savedName;
+        $folder = ($file['file_type'] === 'requirement') ? 'requirement' : 'delivery';
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . '/Taskly/uploads/' . $folder . '/' . $savedName;
         
         if (file_exists($filePath)) {
-            header('Content-Type: application/octet-stream');
+            $ext = strtolower($file['extension']);
+            $contentType = 'application/octet-stream';
+            $mimeTypes = [
+                'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
+                'gif' => 'image/gif', 'webp' => 'image/webp', 'pdf' => 'application/pdf',
+                'zip' => 'application/zip', 'txt' => 'text/plain'
+            ];
+            if (isset($mimeTypes[$ext])) {
+                $contentType = $mimeTypes[$ext];
+            }
+            
+            while (ob_get_level()) ob_end_clean();
+            
+            header('Content-Type: ' . $contentType);
             header('Content-Disposition: attachment; filename="' . $file['file_name'] . '"');
             header('Content-Length: ' . filesize($filePath));
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Pragma: public');
+            
             readfile($filePath);
             exit;
         } else {
@@ -329,10 +375,7 @@ switch ($action) {
             break;
         }
         
-        $stmt = $db->prepare("
-            SELECT id FROM orders 
-            WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
-        ");
+        $stmt = $db->prepare("SELECT id FROM orders WHERE id = ? AND (buyer_id = ? OR seller_id = ?)");
         $stmt->execute([$orderId, $sender_id, $sender_id]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -366,10 +409,7 @@ switch ($action) {
             break;
         }
         
-        $stmt = $db->prepare("
-            SELECT id FROM orders 
-            WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
-        ");
+        $stmt = $db->prepare("SELECT id FROM orders WHERE id = ? AND (buyer_id = ? OR seller_id = ?)");
         $stmt->execute([$orderId, $userId, $userId]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -382,9 +422,132 @@ switch ($action) {
         echo json_encode(['success' => true, 'messages' => $messages]);
         break;
 
+    // ── SUBMIT RATING ─────────────────────────────────────────
+    case 'submit_rating':
+        submitRating($db);
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Unknown action: ' . $action]);
         break;
+}
+
+// ============================================
+// FUNCTION: submitRating
+// ============================================
+function submitRating($db) {
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['success' => false, 'message' => 'You must be logged in']);
+        return;
+    }
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $orderId = $input['order_id'] ?? 0;
+    $rating = $input['rating'] ?? 0;
+    
+    if (!$orderId || $rating < 1 || $rating > 5) {
+        echo json_encode(['success' => false, 'message' => 'Invalid rating data']);
+        return;
+    }
+    
+    $userId = $_SESSION['user_id'];
+    
+    try {
+        // 1. جلب معلومات الطلب و package_id
+        $stmt = $db->prepare("
+            SELECT id, seller_id, status, rating_score, package_id
+            FROM orders 
+            WHERE id = ? AND buyer_id = ?
+        ");
+        $stmt->execute([$orderId, $userId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$order) {
+            echo json_encode(['success' => false, 'message' => 'Order not found']);
+            return;
+        }
+        
+        if ($order['status'] !== 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Order must be completed before rating']);
+            return;
+        }
+        
+        if ($order['rating_score'] !== null) {
+            echo json_encode(['success' => false, 'message' => 'Rating already submitted for this order']);
+            return;
+        }
+        
+        // 2. جلب gig_id من جدول gig_packages
+        $stmt = $db->prepare("SELECT gig_id FROM gig_packages WHERE id = ?");
+        $stmt->execute([$order['package_id']]);
+        $package = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$package || !$package['gig_id']) {
+            echo json_encode(['success' => false, 'message' => 'Gig not found for this order']);
+            return;
+        }
+        
+        $gigId = $package['gig_id'];
+        
+        // 3. حفظ التقييم في جدول orders
+        $stmt = $db->prepare("UPDATE orders SET rating_score = ? WHERE id = ?");
+        $stmt->execute([$rating, $orderId]);
+        
+        // 4. تحديث متوسط تقييم الجيج
+        $updateResult = updateGigRating($db, $gigId);
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Rating submitted successfully',
+            'rating' => $rating,
+            'gig_updated' => $updateResult
+        ]);
+        
+    } catch (PDOException $e) {
+        error_log("Rating error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+// ============================================
+// FUNCTION: updateGigRating - تحديث تقييم الخدمة
+// ============================================
+function updateGigRating($db, $gigId) {
+    try {
+        // حساب متوسط التقييمات لهذه الخدمة
+        $stmt = $db->prepare("
+            SELECT 
+                AVG(o.rating_score) as avg_rating,
+                COUNT(o.rating_score) as total_ratings
+            FROM orders o
+            JOIN gig_packages gp ON o.package_id = gp.id
+            WHERE gp.gig_id = ? AND o.status = 'completed' AND o.rating_score IS NOT NULL
+        ");
+        $stmt->execute([$gigId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $avgRating = $result['avg_rating'] ? round($result['avg_rating']) : null;
+        
+        // تحديث جدول gigs
+        $stmt = $db->prepare("UPDATE gigs SET rating = ? WHERE id = ?");
+        $stmt->execute([$avgRating, $gigId]);
+        
+        // ✅ تحديث مستوى البائع
+        $stmt = $db->prepare("SELECT seller_id FROM gigs WHERE id = ?");
+        $stmt->execute([$gigId]);
+        $gig = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($gig) {
+            $gigModel = new Gig();
+            $gigModel->updateSellerLevel($gig['seller_id']);
+        }
+        
+        return true;
+        
+    } catch (PDOException $e) {
+        error_log("Error updating gig rating: " . $e->getMessage());
+        return false;
+    }
 }
 ?>

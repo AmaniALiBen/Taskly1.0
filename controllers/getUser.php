@@ -13,16 +13,30 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/WalletModel.php';
 
-
 $userId = $_SESSION['user_id'];
 $role = $_SESSION['user_role'] ?? 'buyer';
 
-$stmt = $conn->prepare("SELECT id, name, email, role, picture_name, is_active FROM users WHERE id = ?");
+// ✅ إضافة is_deleted إلى الاستعلام
+$stmt = $conn->prepare("SELECT id, name, email, role, picture_name, is_active, is_deleted FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     echo json_encode(["loggedIn" => false]);
+    exit();
+}
+
+// ✅ التحقق من أن الحساب غير محذوف
+if ($user['is_deleted'] == 1) {
+    session_destroy();
+    echo json_encode(["loggedIn" => false, "message" => "Account has been deleted"]);
+    exit();
+}
+
+// ✅ التحقق من أن الحساب نشط
+if ($user['is_active'] == 0) {
+    session_destroy();
+    echo json_encode(["loggedIn" => false, "message" => "Account is suspended"]);
     exit();
 }
 
@@ -43,7 +57,8 @@ $response = [
     "role" => $user['role'],
     "avatar" => $avatar,
     "picture_name" => $user['picture_name'],
-    "is_active" => $user['is_active']
+    "is_active" => $user['is_active'],
+    "is_deleted" => $user['is_deleted']
 ];
 
 if ($role === 'seller') {
@@ -59,9 +74,9 @@ if ($role === 'seller') {
 }
 
 $walletModel = new WalletModel($conn);
-
 $walletData = $walletModel->getWalletData($userId);
 $response['wallet_balance'] = $walletData ? (float)$walletData['balance'] : 0;
 $response['has_wallet_pin'] = $walletData && !empty($walletData['wallet_pin_hash']);
 
 echo json_encode($response);
+?>

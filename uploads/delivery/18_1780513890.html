@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="box">
+        <h3>2.continue statement</h3>
+        <label for="">enter a number to skip in the loop</label>
+        <input type="number" id="continueInput" placeholder="e.g. 3"><br>
+        <button onclick="continueExample()">run comtinue loop</button>
+        <div class="output" id="continueOutput"></div>
+    </div>
+    <script>
+        function continueExample(){
+            let skip = parseInt(document.getElementById("continueInput").value);
+            let result ="";
+            for(let i = 1;i<=10 ;i++){
+                if(i=== skip)
+            {
+                continue ;
+            }
+            result +=i+"";
+        }
+        document.getElementById("continueOutput").innerHTML ="Result:"+result;
+        }
+    </script>
+</body>
+</html>

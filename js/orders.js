@@ -47,6 +47,7 @@ async function fetchOrders() {
 
         if (result.success) {
             allOrders = result.data;
+            console.log('Orders loaded:', allOrders);
             renderOrders(currentFilter);
         } else {
             listElement.innerHTML = `
@@ -72,7 +73,7 @@ function getStatusDisplay(status) {
     const map = {
         'awaiting_requirements': { label: 'Awaiting Requirements', code: 'warning'   },
         'in_progress':           { label: 'In Progress',           code: 'active'    },
-        'delivered':             { label: 'Delivered',             code: 'completed' },
+        'delivered':             { label: 'Delivered',             code: 'active'    },
         'in_revision':           { label: 'In Revision',           code: 'warning'   },
         'completed':             { label: 'Completed',             code: 'completed' },
         'cancelled':             { label: 'Cancelled',             code: 'cancelled' }
@@ -80,10 +81,17 @@ function getStatusDisplay(status) {
     return map[status] || { label: status, code: 'active' };
 }
 
+// ============================================
+// GET FILTER CODE (لتحديد التبويب الذي يظهر فيه الطلب)
+// ============================================
 function getFilterCode(status) {
     const activeStatuses = ['awaiting_requirements', 'in_progress', 'in_revision', 'delivered'];
-    if (activeStatuses.includes(status)) return 'active';
-    return status; // 'completed' or 'cancelled'
+    
+    if (activeStatuses.includes(status)) {
+        return 'active';
+    }
+    
+    return status;
 }
 
 // ============================================
@@ -95,6 +103,8 @@ function renderOrders(filter = 'active') {
     if (!listElement) return;
 
     const filtered = allOrders.filter(order => getFilterCode(order.status) === filter);
+
+    console.log(`Filter: ${filter}, Total orders: ${allOrders.length}, Filtered: ${filtered.length}`);
 
     if (filtered.length === 0) {
         listElement.innerHTML = `
@@ -108,18 +118,29 @@ function renderOrders(filter = 'active') {
 
     listElement.innerHTML = filtered.map(order => {
         const statusDisplay = getStatusDisplay(order.status);
-        const deadline      = order.deadline
-            ? new Date(order.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'No deadline';
+        
+        let deadlineText = 'No deadline';
+        if (order.deadline) {
+            const deadlineDate = new Date(order.deadline);
+            if (!isNaN(deadlineDate.getTime())) {
+                deadlineText = deadlineDate.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+            }
+        }
 
         const sellerAvatar = (order.seller_avatar && order.seller_avatar !== 'null')
             ? order.seller_avatar
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(order.seller_name || 'S')}&background=7c3aed&color=fff&size=40`;
 
+        const gigImage = order.gig_image || '/Taskly/images/default-gig.jpg';
+
         return `
             <div class="order-card" onclick="goToOrder(${order.id})">
                 <div class="order-img-container">
-                    <img src="${order.gig_image || '/Taskly/images/default-gig.jpg'}"
+                    <img src="${gigImage}"
                          class="order-img"
                          alt="${escapeHtml(order.gig_title)}"
                          onerror="this.src='/Taskly/images/default-gig.jpg'">
@@ -135,7 +156,7 @@ function renderOrders(filter = 'active') {
                     <div class="order-meta-group">
                         <div class="meta-item">
                             <span class="label">Due Date</span>
-                            <span class="value">${deadline}</span>
+                            <span class="value">${deadlineText}</span>
                         </div>
                         <div class="status-badge status-${statusDisplay.code}">
                             ${statusDisplay.label}
@@ -158,12 +179,21 @@ function filterOrders(type) {
 }
 
 // ============================================
-// NAVIGATION
+// GO TO ORDER (منع الوصول للطلبات الملغاة)
 // ============================================
 function goToOrder(orderId) {
+    const order = allOrders.find(o => o.id == orderId);
+    
+    if (order && order.status === 'cancelled') {
+        return;
+    }
+    
     window.location.href = `order-tracking.html?id=${orderId}`;
 }
 
+// ============================================
+// NAVIGATION
+// ============================================
 function goBack() {
     window.history.back();
 }
@@ -176,6 +206,27 @@ function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, m => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     })[m]);
+}
+
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-circle';
+    toast.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 // ============================================

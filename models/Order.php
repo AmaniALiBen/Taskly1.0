@@ -184,7 +184,7 @@ class Order {
     }
 
     // =========================================================================
-    // 7. GET SINGLE ORDER DETAILS
+    // 7. GET SINGLE ORDER DETAILS (WITH BUYER/SELLER PICTURES)
     // =========================================================================
     public function getOrderDetails($order_id, $user_id) {
         $stmt = $this->db->prepare("
@@ -200,9 +200,9 @@ class Order {
                 gp.delivery_time_days,
                 gp.revisions_allowed,
                 buyer.name as buyer_name,
-                buyer.picture_name as buyer_picture,
+                buyer.picture_name as buyer_picture_name,
                 seller.name as seller_name,
-                seller.picture_name as seller_picture
+                seller.picture_name as seller_picture_name
             FROM orders o
             JOIN gig_packages gp ON o.package_id = gp.id
             JOIN gigs g ON gp.gig_id = g.id
@@ -214,6 +214,23 @@ class Order {
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($order) {
+            // Buyer picture
+            if (!empty($order['buyer_picture_name'])) {
+                $order['buyer_picture'] = '/Taskly/avatars/buyers/' . $order['buyer_picture_name'];
+            } else {
+                $order['buyer_picture'] = null;
+            }
+            
+            // Seller picture
+            if (!empty($order['seller_picture_name'])) {
+                $order['seller_picture'] = '/Taskly/avatars/sellers/' . $order['seller_picture_name'];
+            } else {
+                $order['seller_picture'] = null;
+            }
+            
+            unset($order['buyer_picture_name']);
+            unset($order['seller_picture_name']);
+            
             $order['requirements_files'] = $this->getOrderFiles($order_id, 'requirement');
             $order['delivery_files'] = $this->getOrderFiles($order_id, 'delivery');
         }

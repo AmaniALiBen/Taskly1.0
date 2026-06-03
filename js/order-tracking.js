@@ -8,6 +8,7 @@ const WALLET_API = '/Taskly/controllers/WalletController.php';
 let selectedFiles = [];
 let deliveryFiles = [];
 let revisionsLeft = 3;
+let totalRevisions = 3;
 let orderCompleted = false;
 let ratingSubmitted = false;
 let orderData = null;
@@ -44,7 +45,7 @@ async function getCurrentUserId() {
 }
 
 // ============================================
-// LOAD ORDER FROM DATABASE
+// LOAD ORDER FROM DATABASE (مع منع الطلبات الملغاة)
 // ============================================
 async function loadOrderFromDatabase() {
     const orderId = getOrderIdFromUrl();
@@ -60,13 +61,84 @@ async function loadOrderFromDatabase() {
         
         if (data.success) {
             orderData = data.order;
+            
+            // ✅ إذا كان الطلب ملغى، امنع الوصول وأعد التوجيه
+            if (orderData.status === 'cancelled') {
+                showToast('This order has been cancelled. Returning to orders page.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'orders.html';
+                }, 2000);
+                return;
+            }
+            
+            // التحقق إذا كان التقييم قد تم مسبقاً
+            if (orderData.rating_score !== null && orderData.rating_score > 0) {
+                ratingSubmitted = true;
+            }
+            
             renderOrderData();
+            startMessagePolling(orderId);
         } else {
             showToast('Order not found', 'error');
         }
     } catch (error) {
         console.error('Error loading order:', error);
         showToast('Failed to load order', 'error');
+    }
+}
+
+// ============================================
+// UPDATE ORDER STATUS IN DATABASE
+// ============================================
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`${ORDERS_API}?action=update_status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId, status: newStatus })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating status:', error);
+        return { success: false };
+    }
+}
+
+// ============================================
+// UPDATE REVISIONS IN DATABASE
+// ============================================
+async function updateRevisions(orderId, newRevisionsLeft) {
+    try {
+        const response = await fetch(`${ORDERS_API}?action=update_revisions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId, left_revisions: newRevisionsLeft })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating revisions:', error);
+        return { success: false };
+    }
+}
+
+// ============================================
+// DISABLE CHAT WHEN ORDER COMPLETED
+// ============================================
+function disableChatOnCompletion() {
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.querySelector('#pane-messages .button-primary');
+    
+    if (chatInput) {
+        chatInput.disabled = true;
+        chatInput.placeholder = 'Order completed - Chat is closed';
+        chatInput.style.opacity = '0.5';
+        chatInput.style.cursor = 'not-allowed';
+    }
+    
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.style.cursor = 'not-allowed';
     }
 }
 
@@ -107,11 +179,13 @@ function renderOrderData() {
         orderAmount.textContent = `$${parseFloat(orderData.price || 0).toFixed(2)}`;
     }
     
-    // Update revisions left
-    revisionsLeft = orderData.left_revisions || 3;
+    // تحديث عدد المراجعات من قاعدة البيانات مباشرة
+    totalRevisions = orderData.revisions_allowed || 3;
+    revisionsLeft = orderData.left_revisions !== null && orderData.left_revisions !== undefined ? orderData.left_revisions : totalRevisions;
+    
     const revisionsVal = document.getElementById('revisions-val');
     if (revisionsVal) {
-        revisionsVal.innerHTML = `<i class="fas fa-redo-alt" style="font-size: 10px; margin-right: 5px;"></i> ${revisionsLeft} of ${orderData.revisions_allowed || 3}`;
+        revisionsVal.innerHTML = `<i class="fas fa-redo-alt" style="font-size: 10px; margin-right: 5px;"></i> ${revisionsLeft} of ${totalRevisions}`;
     }
     
     // Update status
@@ -130,6 +204,7 @@ function renderOrderData() {
         if (orderData.status === 'completed') statusVal.style.color = 'var(--success)';
         else if (orderData.status === 'in_progress') statusVal.style.color = 'var(--primary-color)';
         else if (orderData.status === 'awaiting_requirements') statusVal.style.color = 'var(--warning)';
+        else if (orderData.status === 'delivered') statusVal.style.color = 'var(--primary-color)';
     }
     
     // If requirements already submitted, show view mode
@@ -166,27 +241,36 @@ function renderOrderData() {
             document.getElementById('node-3').classList.add('completed');
             document.getElementById('node-3').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
             orderCompleted = true;
+            disableChatOnCompletion();
         }
     }
     
-    // Render delivery files and show/hide action buttons
     renderDeliveryFiles();
 }
 
+// ============================================
+// RENDER DELIVERY FILES
+// ============================================
 function renderDeliveryFiles() {
     const deliveryContainer = document.getElementById('delivery-items-list');
     const actionButtons = document.getElementById('delivery-action-buttons');
+    const revisionBtn = document.getElementById('btn-revision');
+    const acceptBtn = document.getElementById('btn-accept');
     
     if (!deliveryContainer) return;
     
     if (orderData && orderData.delivery_files && orderData.delivery_files.length > 0) {
-        // Show delivery files
-        const deliveryHtml = orderData.delivery_files.map(file => `
-            <div class="delivery-item">
-                <div>
-                    <span class="delivery-tag tag-delivered">Delivered</span>
+        const deliveryHtml = orderData.delivery_files.map(file => {
+            const uploadDate = new Date(file.uploaded_at);
+            const formattedDate = uploadDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            
+            return `
+                <div class="delivery-item">
+                    <div class="delivery-header">
+                        <span class="delivery-tag tag-delivered">Delivered</span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">${formattedDate}</span>
+                    </div>
                     <h4 style="margin-top: 8px;">${escapeHtml(file.file_name)}</h4>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Uploaded ${new Date(file.uploaded_at).toLocaleString()}</p>
                     <div class="delivery-files" style="margin-top: 10px;">
                         <div class="file-download-item" onclick="downloadDeliveryFile(${file.id}, '${escapeHtml(file.file_name)}')">
                             <i class="fas fa-file"></i>
@@ -195,15 +279,34 @@ function renderDeliveryFiles() {
                         </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         deliveryContainer.innerHTML = deliveryHtml;
         
-        // Show action buttons only when order status is 'delivered' and not completed
-        if (actionButtons && orderData.status === 'delivered' && orderData.status !== 'completed') {
-            actionButtons.style.display = 'block';
-        } else if (actionButtons) {
-            actionButtons.style.display = 'none';
+        // المنطق الجديد للأزرار
+        if (actionButtons) {
+            // إذا كان الطلب مكتملاً أو ملغياً، إخفاء جميع الأزرار
+            if (orderData.status === 'completed' || orderData.status === 'cancelled') {
+                actionButtons.style.display = 'none';
+            } 
+            // إذا كانت الحالة delivered، إظهار الأزرار
+            else if (orderData.status === 'delivered') {
+                actionButtons.style.display = 'block';
+                
+                // زر المراجعة: يظهر فقط إذا كان هناك مراجعات متبقية
+                if (revisionBtn) {
+                    revisionBtn.style.display = (revisionsLeft > 0) ? 'inline-block' : 'none';
+                }
+                
+                // زر القبول: يظهر دائماً
+                if (acceptBtn) {
+                    acceptBtn.style.display = 'inline-block';
+                }
+            } 
+            // باقي الحالات (in_progress, awaiting_requirements) إخفاء الأزرار
+            else {
+                actionButtons.style.display = 'none';
+            }
         }
     } else {
         deliveryContainer.innerHTML = '<div class="empty-message" style="text-align: center; padding: 40px;"><i class="fas fa-box-open"></i><p>No deliveries yet</p></div>';
@@ -272,14 +375,26 @@ function closeModal() {
 }
 
 // ============================================
-// RATING MODAL
+// RATING MODAL - حفظ في قاعدة البيانات
 // ============================================
 function openRatingModal() {
+    // منع فتح المودال إذا تم التقييم مسبقاً
+    if (ratingSubmitted) {
+        showToast('You have already rated this order', 'info');
+        return;
+    }
+    
     const modal = document.getElementById('ratingModal');
     if (modal) {
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
         
+        // إعادة تعيين التقييم
+        const starsContainer = document.getElementById('rating-stars');
+        starsContainer.dataset.selected = '0';
+        updateStars(0);
+        
+        // إعداد النجوم
         const stars = document.querySelectorAll('#rating-stars i');
         stars.forEach(star => {
             star.onmouseenter = function() {
@@ -320,7 +435,7 @@ function closeRatingModal() {
     }
 }
 
-function submitRating() {
+async function submitRating() {
     const starsContainer = document.getElementById('rating-stars');
     const rating = parseInt(starsContainer.dataset.selected || 0);
     
@@ -329,19 +444,37 @@ function submitRating() {
         return;
     }
     
-    const reviewData = {
-        orderId: getOrderIdFromUrl(),
-        rating: rating,
-        timestamp: new Date().toISOString()
-    };
+    const orderId = getOrderIdFromUrl();
     
-    let reviews = JSON.parse(localStorage.getItem('orderReviews') || '[]');
-    reviews.push(reviewData);
-    localStorage.setItem('orderReviews', JSON.stringify(reviews));
-    
-    showToast(`Thank you for your ${rating}-star rating!`, 'success');
-    ratingSubmitted = true;
-    closeRatingModal();
+    try {
+        const response = await fetch(`${ORDERS_API}?action=submit_rating`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                order_id: orderId,
+                rating: rating
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Thank you for your ${rating}-star rating!`, 'success');
+            ratingSubmitted = true;
+            
+            // تحديث orderData محلياً
+            if (orderData) {
+                orderData.rating_score = rating;
+            }
+            
+            closeRatingModal();
+        } else {
+            showToast(data.message || 'Failed to submit rating', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting rating:', error);
+        showToast('Failed to submit rating. Please try again.', 'error');
+    }
 }
 
 // ============================================
@@ -383,6 +516,7 @@ function submitComplaint() {
         return;
     }
     
+    // حفظ الشكوى في localStorage مؤقتاً (يمكن تعديلها لاحقاً للحفظ في DB)
     const complaintData = {
         orderId: getOrderIdFromUrl(),
         orderTitle: document.getElementById('order-gig-title')?.textContent || 'Order',
@@ -425,30 +559,6 @@ function renderFileChips() {
 function removeFile(index) {
     selectedFiles.splice(index, 1);
     renderFileChips();
-}
-
-function handleDeliveryFiles(event) {
-    const files = Array.from(event.target.files);
-    deliveryFiles = [...deliveryFiles, ...files];
-    renderDeliveryFilesUpload();
-    showToast(`${files.length} file(s) added for delivery`, 'info');
-}
-
-function renderDeliveryFilesUpload() {
-    const list = document.getElementById('delivery-files-list');
-    if (!list) return;
-    list.innerHTML = '';
-    deliveryFiles.forEach((file, index) => {
-        const chip = document.createElement('div');
-        chip.className = 'delivery-file-chip';
-        chip.innerHTML = `<span>${escapeHtml(file.name)}</span><i class="fas fa-times" style="cursor:pointer; color: #ef4444;" onclick="removeDeliveryFile(${index})"></i>`;
-        list.appendChild(chip);
-    });
-}
-
-function removeDeliveryFile(index) {
-    deliveryFiles.splice(index, 1);
-    renderDeliveryFilesUpload();
 }
 
 // ============================================
@@ -535,50 +645,115 @@ async function submitRequirements() {
 }
 
 // ============================================
-// SUBMIT DELIVERY
-// ============================================
-async function submitDelivery() {
-    if (deliveryFiles.length === 0) {
-        showToast('Please select files to deliver', 'error');
-        return;
-    }
-    
-    const orderId = getOrderIdFromUrl();
-    const formData = new FormData();
-    formData.append('order_id', orderId);
-    
-    for (let i = 0; i < deliveryFiles.length; i++) {
-        formData.append('delivery_files[]', deliveryFiles[i]);
-    }
-    
-    try {
-        const response = await fetch(`${ORDERS_API}?action=submit_delivery`, {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Delivery submitted successfully!', 'success');
-            deliveryFiles = [];
-            renderDeliveryFilesUpload();
-            document.getElementById('delivery-files').value = '';
-            loadOrderFromDatabase();
-        } else {
-            showToast(data.message, 'error');
-        }
-    } catch (error) {
-        console.error('Error submitting delivery:', error);
-        showToast('Failed to submit delivery', 'error');
-    }
-}
-
-// ============================================
 // DOWNLOAD DELIVERY FILE
 // ============================================
 function downloadDeliveryFile(fileId, fileName) {
     showToast(`Downloading ${fileName}...`, 'info');
     window.location.href = `${ORDERS_API}?action=download_file&file_id=${fileId}`;
+}
+
+// ============================================
+// REQUEST REVISION
+// ============================================
+async function requestRevision() {
+    if (revisionsLeft <= 0) {
+        showToast("No revisions left!", "error");
+        return;
+    }
+    if (orderCompleted) {
+        showToast("Order is already completed!", "error");
+        return;
+    }
+    
+    openModal({
+        title: 'Request Revision?',
+        body: `You have ${revisionsLeft} revisions remaining. Requesting one will notify the seller.`,
+        icon: 'fa-redo',
+        confirmText: 'Request Now',
+        onConfirm: async () => {
+            const orderId = getOrderIdFromUrl();
+            
+            const newRevisionsLeft = revisionsLeft - 1;
+            await updateRevisions(orderId, newRevisionsLeft);
+            await updateOrderStatus(orderId, 'in_progress');
+            
+            revisionsLeft = newRevisionsLeft;
+            await loadOrderFromDatabase();
+            
+            document.getElementById('revisions-val').innerHTML = `<i class="fas fa-redo-alt" style="font-size: 10px; margin-right: 5px;"></i> ${revisionsLeft} of ${totalRevisions}`;
+            document.getElementById('status-val').textContent = "In Progress";
+            document.getElementById('status-val').style.color = "var(--primary-color)";
+            
+            const actionButtons = document.getElementById('delivery-action-buttons');
+            if (actionButtons) {
+                actionButtons.style.display = 'none';
+            }
+            
+            showToast(`Revision requested! ${revisionsLeft} revisions remaining.`, "info");
+            switchTab('messages');
+            
+            const chatBox = document.getElementById('chat-box');
+            const log = document.createElement('div');
+            log.style.textAlign = 'center';
+            log.style.fontSize = '12px';
+            log.style.color = 'var(--text-muted)';
+            log.style.margin = '10px 0';
+            log.innerHTML = `<i class="fas fa-redo"></i> Revision requested - ${revisionsLeft} revisions left`;
+            chatBox.appendChild(log);
+        }
+    });
+}
+
+// ============================================
+// ACCEPT ORDER
+// ============================================
+async function acceptOrder() {
+    if (orderCompleted) {
+        showToast("Order is already completed!", "error");
+        return;
+    }
+    
+    openModal({
+        title: 'Approve Delivery?',
+        body: 'This will complete the order and release payment. Make sure you have downloaded all files.',
+        icon: 'fa-check-double',
+        confirmText: 'Yes, Complete Order',
+        onConfirm: async () => {
+            const orderId = getOrderIdFromUrl();
+            
+            await updateOrderStatus(orderId, 'completed');
+            
+            document.getElementById('status-val').textContent = "Completed";
+            document.getElementById('status-val').style.color = "var(--success)";
+            
+            document.getElementById('node-2').classList.replace('active', 'completed');
+            document.getElementById('node-2').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
+            document.getElementById('node-3').classList.add('completed');
+            document.getElementById('node-3').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
+            
+            const actionButtons = document.getElementById('delivery-action-buttons');
+            if (actionButtons) {
+                actionButtons.style.display = 'none';
+            }
+            
+            document.getElementById('btn-accept').disabled = true;
+            document.getElementById('btn-accept').textContent = "Order Completed";
+            
+            const complaintBtn = document.getElementById('sidebar-complaint-btn');
+            if (complaintBtn) complaintBtn.disabled = true;
+            
+            orderCompleted = true;
+            disableChatOnCompletion();
+            
+            showToast("Order completed successfully!", "success");
+            
+            setTimeout(() => {
+                if (!ratingSubmitted) {
+                    openRatingModal();
+                }
+            }, 1000);
+        }
+    });
 }
 
 // ============================================
@@ -625,6 +800,7 @@ async function fetchMessages() {
 
 function appendMessages(messages) {
     const chatBox = document.getElementById('chat-box');
+    if (!chatBox) return;
     
     messages.forEach(msg => {
         const isMe = (msg.sender_id == currentUserId);
@@ -645,6 +821,11 @@ function appendMessages(messages) {
 }
 
 async function sendMessage() {
+    if (orderCompleted) {
+        showToast('Order is completed. Chat is closed.', 'error');
+        return;
+    }
+    
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
@@ -678,92 +859,6 @@ async function sendMessage() {
             isSending = false;
         }, 500);
     }
-}
-
-// ============================================
-// REQUEST REVISION
-// ============================================
-function requestRevision() {
-    if (revisionsLeft <= 0) return showToast("No revisions left!", "error");
-    if (orderCompleted) return showToast("Order is already completed!", "error");
-    
-    openModal({
-        title: 'Request Revision?',
-        body: `You have ${revisionsLeft} revisions remaining. Requesting one will notify the seller.`,
-        icon: 'fa-redo',
-        confirmText: 'Request Now',
-        onConfirm: () => {
-            revisionsLeft--;
-            document.getElementById('revisions-val').innerHTML = `<i class="fas fa-redo-alt" style="font-size: 10px; margin-right: 5px;"></i> ${revisionsLeft} of ${orderData?.revisions_allowed || 3}`;
-            
-            showToast("Revision requested. Please explain the changes in chat.", "info");
-            switchTab('messages');
-            
-            const chatBox = document.getElementById('chat-box');
-            const log = document.createElement('div');
-            log.style.textAlign = 'center';
-            log.style.fontSize = '12px';
-            log.style.color = 'var(--text-muted)';
-            log.style.margin = '10px 0';
-            log.innerHTML = `<i class="fas fa-redo"></i> Revision #${(orderData?.revisions_allowed || 3) - revisionsLeft} requested`;
-            chatBox.appendChild(log);
-        }
-    });
-}
-
-// ============================================
-// ACCEPT ORDER
-// ============================================
-function acceptOrder() {
-    if (orderCompleted) return showToast("Order is already completed!", "error");
-    
-    openModal({
-        title: 'Approve Delivery?',
-        body: 'This will complete the order and release payment. Make sure you have downloaded all files.',
-        icon: 'fa-check-double',
-        confirmText: 'Yes, Complete Order',
-        onConfirm: async () => {
-            const orderId = getOrderIdFromUrl();
-            try {
-                await fetch(`${ORDERS_API}?action=update_status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: orderId, status: 'completed' })
-                });
-            } catch (error) {
-                console.error('Error updating status:', error);
-            }
-            
-            document.getElementById('status-val').textContent = "Completed";
-            document.getElementById('status-val').style.color = "var(--success)";
-            
-            document.getElementById('node-2').classList.replace('active', 'completed');
-            document.getElementById('node-2').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
-            document.getElementById('node-3').classList.add('completed');
-            document.getElementById('node-3').querySelector('.node-icon').innerHTML = '<i class="fas fa-check"></i>';
-            
-            const revisionBtn = document.getElementById('btn-revision');
-            if (revisionBtn) {
-                revisionBtn.style.display = 'none';
-            }
-            
-            document.getElementById('btn-accept').disabled = true;
-            document.getElementById('btn-accept').textContent = "Order Completed";
-            
-            const complaintBtn = document.getElementById('sidebar-complaint-btn');
-            if (complaintBtn) complaintBtn.disabled = true;
-            
-            orderCompleted = true;
-            
-            showToast("Order completed successfully!", "success");
-            
-            setTimeout(() => {
-                if (!ratingSubmitted) {
-                    openRatingModal();
-                }
-            }, 1000);
-        }
-    });
 }
 
 // ============================================
@@ -841,20 +936,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 sendMessage();
             }
         });
-    }
-    
-    // Setup delivery upload area (for sellers only - will be shown based on role)
-    const deliveryUploadZone = document.getElementById('delivery-upload-area');
-    if (deliveryUploadZone && currentUserRole === 'seller') {
-        deliveryUploadZone.innerHTML = `
-            <div class="file-upload-zone" onclick="document.getElementById('delivery-files').click()">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Upload delivery files</p>
-                <input type="file" id="delivery-files" multiple style="display: none;" onchange="handleDeliveryFiles(event)">
-            </div>
-            <div id="delivery-files-list" class="delivery-files-list"></div>
-            <button class="button-primary" id="submit-delivery-btn" onclick="submitDelivery()">Submit Delivery</button>
-        `;
     }
 });
 
