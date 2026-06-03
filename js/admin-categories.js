@@ -10,11 +10,8 @@ const CATEGORY_API = '../controllers/CategoryController.php';
 let selectedCategoryId   = null;
 let selectedCategoryName = null;
 
-
 // ─── HELPER: send a POST request ─────────────────────────────
-// Instead of repeating fetch() code everywhere, one helper does it
 async function postToAPI(url, data) {
-    // FormData is the easiest way to send POST fields in fetch()
     const form = new FormData();
     for (const key in data) {
         form.append(key, data[key]);
@@ -25,14 +22,14 @@ async function postToAPI(url, data) {
         body: form
     });
 
-    return response.json(); // always returns a JS object
+    return response.json();
 }
 
-
 // ─── LOAD ALL CATEGORIES ─────────────────────────────────────
-// Called once when the categories tab is opened
 async function loadCategories() {
     const grid = document.getElementById('mainCategoriesList');
+    if (!grid) return;
+    
     grid.innerHTML = '<p style="color:#6b7280; padding:20px;">Loading...</p>';
 
     try {
@@ -49,7 +46,6 @@ async function loadCategories() {
             return;
         }
 
-        // Build a card for each category
         grid.innerHTML = data.data.map(cat => buildCategoryCard(cat)).join('');
 
     } catch (err) {
@@ -58,10 +54,8 @@ async function loadCategories() {
     }
 }
 
-
-// ─── BUILD A CATEGORY CARD (HTML string) ─────────────────────
+// ─── BUILD A CATEGORY CARD ───────────────────────────────────
 function buildCategoryCard(cat) {
-    // cat.icon_url stores the FontAwesome class like "fa-code"
     const icon = cat.icon_url
         ? `<i class="fas ${cat.icon_url}"></i>`
         : `<i class="fas fa-tag"></i>`;
@@ -87,11 +81,10 @@ function buildCategoryCard(cat) {
     `;
 }
 
-
 // ─── ADD CATEGORY ─────────────────────────────────────────────
 async function addMainCategory() {
-    const name     = document.getElementById('mainCatName').value.trim();
-    const icon_url = document.getElementById('mainCatIcon').value.trim();
+    const name     = document.getElementById('mainCatName')?.value.trim();
+    const icon_url = document.getElementById('mainCatIcon')?.value.trim();
 
     if (!name) {
         showToast('Please enter a category name', 'error');
@@ -106,18 +99,16 @@ async function addMainCategory() {
 
     if (data.success) {
         showToast('Category added!', 'success');
-        document.getElementById('mainCatName').value  = '';
-        document.getElementById('mainCatIcon').value  = '';
-        loadCategories(); // refresh the grid
+        if (document.getElementById('mainCatName')) document.getElementById('mainCatName').value = '';
+        if (document.getElementById('mainCatIcon')) document.getElementById('mainCatIcon').value = '';
+        loadCategories();
     } else {
         showToast(data.message, 'error');
     }
 }
 
-
 // ─── DELETE CATEGORY ──────────────────────────────────────────
 function deleteCategory(id) {
-    // Use your existing confirm modal
     showConfirmModal(
         'Delete Category',
         'This will also delete all its subcategories. Are you sure?',
@@ -129,9 +120,9 @@ function deleteCategory(id) {
 
             if (data.success) {
                 showToast('Category deleted', 'success');
-                // Hide subcategories panel if we deleted the selected category
                 if (selectedCategoryId === id) {
-                    document.getElementById('subcategoriesPanel').style.display = 'none';
+                    const panel = document.getElementById('subcategoriesPanel');
+                    if (panel) panel.style.display = 'none';
                     selectedCategoryId = null;
                 }
                 loadCategories();
@@ -142,11 +133,8 @@ function deleteCategory(id) {
     );
 }
 
-
-// ─── EDIT CATEGORY (inline — clicking pencil turns name into input) ───
+// ─── EDIT CATEGORY ───────────────────────────────────────────
 function editCategory(id, currentName, currentIcon) {
-    // Find the name element inside the card for this category
-    // We locate it by finding the card that contains this category's delete button
     const cards = document.querySelectorAll('.main-category-card');
     let nameElement = null;
 
@@ -158,8 +146,6 @@ function editCategory(id, currentName, currentIcon) {
     });
 
     if (!nameElement) return;
-
-    // Don't create a second input if one already exists
     if (nameElement.querySelector('input')) return;
 
     const input = document.createElement('input');
@@ -181,56 +167,53 @@ function editCategory(id, currentName, currentIcon) {
     input.focus();
     input.select();
 
-    // Save on blur (clicking away)
     input.addEventListener('blur', async () => {
         const newName = input.value.trim();
         if (newName && newName !== currentName) {
             const data = await postToAPI(CATEGORY_API, {
-                action:   'update',
+                action: 'update',
                 id,
-                name:     newName,
+                name: newName,
                 icon_url: currentIcon
             });
             if (data.success) {
                 showToast('Category updated!', 'success');
-                nameElement.innerText = newName; // update in place, no full reload
+                nameElement.innerText = newName;
             } else {
                 showToast(data.message, 'error');
-                nameElement.innerText = currentName; // restore original
+                nameElement.innerText = currentName;
             }
         } else {
-            nameElement.innerText = currentName; // restore if unchanged
-        }
-    });
-
-    // Save on Enter key
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') input.blur();
-        if (e.key === 'Escape') {
             nameElement.innerText = currentName;
         }
     });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') nameElement.innerText = currentName;
+    });
 }
 
-
-// ─── OPEN CATEGORY (show its subcategories) ───────────────────
+// ─── OPEN CATEGORY ───────────────────────────────────────────
 async function openCategory(id, name) {
     selectedCategoryId   = id;
     selectedCategoryName = name;
 
-    document.getElementById('selectedMainCategoryName').textContent = name;
-    document.getElementById('subcategoriesPanel').style.display = 'block';
+    const titleEl = document.getElementById('selectedMainCategoryName');
+    if (titleEl) titleEl.textContent = name;
+    
+    const panel = document.getElementById('subcategoriesPanel');
+    if (panel) panel.style.display = 'block';
 
     await loadSubcategories(id);
-
-    // Smooth scroll to the panel
-    document.getElementById('subcategoriesPanel').scrollIntoView({ behavior: 'smooth' });
+    if (panel) panel.scrollIntoView({ behavior: 'smooth' });
 }
 
-
-// ─── LOAD SUBCATEGORIES ───────────────────────────────────────
+// ─── LOAD SUBCATEGORIES ──────────────────────────────────────
 async function loadSubcategories(categoryId) {
     const nav = document.getElementById('subcategoriesNav');
+    if (!nav) return;
+    
     nav.innerHTML = '<p style="color:#6b7280;">Loading...</p>';
 
     try {
@@ -264,10 +247,9 @@ async function loadSubcategories(categoryId) {
     }
 }
 
-
-// ─── ADD SUBCATEGORY ──────────────────────────────────────────
+// ─── ADD SUBCATEGORY ─────────────────────────────────────────
 async function addSubcategory() {
-    const name = document.getElementById('subCatName').value.trim();
+    const name = document.getElementById('subCatName')?.value.trim();
 
     if (!name) {
         showToast('Please enter a subcategory name', 'error');
@@ -280,23 +262,22 @@ async function addSubcategory() {
     }
 
     const data = await postToAPI(CATEGORY_API, {
-        action:      'create_sub',
+        action: 'create_sub',
         category_id: selectedCategoryId,
         name
     });
 
     if (data.success) {
         showToast('Subcategory added!', 'success');
-        document.getElementById('subCatName').value = '';
-        loadSubcategories(selectedCategoryId); // refresh the nav
-        loadCategories(); // refresh count on the card
+        if (document.getElementById('subCatName')) document.getElementById('subCatName').value = '';
+        loadSubcategories(selectedCategoryId);
+        loadCategories();
     } else {
         showToast(data.message, 'error');
     }
 }
 
-
-// ─── DELETE SUBCATEGORY ───────────────────────────────────────
+// ─── DELETE SUBCATEGORY ──────────────────────────────────────
 function deleteSubcategory(id) {
     showConfirmModal(
         'Delete Subcategory',
@@ -318,114 +299,47 @@ function deleteSubcategory(id) {
     );
 }
 
-
-// ─── SELECT SUBCATEGORY ───────────────────────────────────────
-// Highlights the selected subcategory tab (gigs loading can be added later)
+// ─── SELECT SUBCATEGORY ──────────────────────────────────────
 function selectSubcategory(id, name) {
     document.querySelectorAll('.subcat-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    // TODO: load gigs for this subcategory here later
+    if (event && event.target) event.target.classList.add('active');
 }
 
-
-// ─── HELPERS ──────────────────────────────────────────────────
-
-// Prevent XSS when injecting user data into HTML
-function escapeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+// ─── ENTER KEY HANDLERS (without DOMContentLoaded) ───────────
+// These will run when the elements exist
+function setupCategoryEnterHandlers() {
+    const mainCatName = document.getElementById('mainCatName');
+    const mainCatIcon = document.getElementById('mainCatIcon');
+    const subCatName = document.getElementById('subCatName');
+    
+    if (mainCatName) {
+        mainCatName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addMainCategory();
+        });
+    }
+    
+    if (mainCatIcon) {
+        mainCatIcon.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addMainCategory();
+        });
+    }
+    
+    if (subCatName) {
+        subCatName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubcategory();
+        });
+    }
 }
 
-// Show toast notification (uses your existing showToast function)
-// If you don't have one yet, this is a basic version:
-function showToast(message, type = 'success') {
-    const container = document.querySelector('.toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-        ${message}
-    `;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.animation = 'slideOutRight 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+// Call this when categories tab is opened
+function initCategoriesTab() {
+    setupCategoryEnterHandlers();
+    loadCategories();
 }
 
-// Wire up the confirm modal to accept a callback
-let confirmCallback = null;
-
-function showConfirmModal(title, message, onConfirm) {
-    document.getElementById('confirmModalTitle').textContent   = title;
-    document.getElementById('confirmModalMessage').textContent = message;
-    document.getElementById('confirmModal').classList.add('active');
-    confirmCallback = onConfirm;
-}
-
-function closeConfirmModal() {
-    document.getElementById('confirmModal').classList.remove('active');
-    confirmCallback = null;
-}
-
-function confirmDelete() {
-    if (confirmCallback) confirmCallback();
-    closeConfirmModal();
-}
-
-
-// ─── TAB SWITCHING ────────────────────────────────────────────
-// Load categories when the categories tab is opened
-function switchTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-    // Show selected tab
-    document.getElementById(`${tabName}-tab`).classList.add('active');
-    event.target.classList.add('active');
-
-    // Load data for the tab that was just opened
-    if (tabName === 'categories') loadCategories();
-    // TODO: add loadUsers(), loadReports(), loadComplaints() here later
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    // Category name + icon → clicks "Add Category" button
-    document.getElementById('mainCatName').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-category-panel .btn-primary').click();
-    });
-    document.getElementById('mainCatIcon').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-category-panel .btn-primary').click();
-    });
-
-    // Subcategory name → clicks "Add Subcategory" button
-    document.getElementById('subCatName').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-subcategory-panel .btn-primary').click();
-    });
-
-    // Add admin inputs → clicks "Add Admin" button
-    document.getElementById('adminOnlyName').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-admin-only-panel .btn-primary').click();
-    });
-    document.getElementById('adminOnlyEmail').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-admin-only-panel .btn-primary').click();
-    });
-    document.getElementById('adminOnlyPassword').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.querySelector('.add-admin-only-panel .btn-primary').click();
-    });
-
-});
-
-
-// Load categories on page start since it might not be the first tab
-// (users tab is active by default — categories load when you click the tab)
+// Also call on page load in case categories tab is active
+setTimeout(() => {
+    if (document.getElementById('categories-tab') && document.getElementById('categories-tab').classList.contains('active')) {
+        initCategoriesTab();
+    }
+}, 100);

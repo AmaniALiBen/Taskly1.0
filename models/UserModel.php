@@ -206,5 +206,14 @@ class UserModel {
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$userId]);
     }
+        // =========================================================================
+    // TOGGLE ALL GIGS STATUS FOR A SELLER (for suspend/activate)
+    // =========================================================================
+    public function toggleStatusBySeller($seller_id, $is_active) {
+        $stmt = $this->db->prepare("
+            UPDATE gigs SET is_active = ? WHERE seller_id = ? AND is_deleted = 0
+        ");
+        return $stmt->execute([$is_active ? 1 : 0, $seller_id]);
+    }
 }
 ?>

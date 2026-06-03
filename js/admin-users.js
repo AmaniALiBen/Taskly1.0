@@ -173,9 +173,6 @@ async function toggleUserStatus(userId, newStatus) {
     );
 }
 
-// ============================================
-// DELETE USER
-// ============================================
 function deleteUser(userId, userName) {
     showConfirmModal(
         'Delete User',
@@ -201,8 +198,12 @@ function deleteUser(userId, userName) {
             } catch (error) {
                 showToast('Failed to delete user', 'error');
             }
-        }
+        },
+        'Delete'
     );
+}
+function filterUsers(type) {
+    loadUsers(type);
 }
 
 // ============================================
@@ -215,9 +216,3 @@ function escapeHtml(str) {
     })[m]);
 }
 
-// ============================================
-// INITIALIZE
-// ============================================
-document.addEventListener('DOMContentLoaded', () => {
-    loadUsers('sellers');
-});

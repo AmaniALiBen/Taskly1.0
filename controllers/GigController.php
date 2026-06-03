@@ -272,8 +272,42 @@ case 'seller_gigs':
     $gigs = $gigModel->getPublicSellerGigs($seller_id, $limit);
     echo json_encode(['success' => true, 'data' => $gigs]);
     break;
-    
+        // ── GET ALL REPORTS FOR ADMIN ─────────────────────────────
+    case 'get_reports':
+        $reports = $gigModel->getAllReports();
+        echo json_encode(['success' => true, 'data' => $reports]);
+        break;
 
+    // ── RESOLVE REPORT (DISMISS) ──────────────────────────────
+    case 'resolve_report':
+        $report_id = (int)($_POST['report_id'] ?? 0);
+        if ($report_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid report ID']);
+            break;
+        }
+        $result = $gigModel->resolveReport($report_id);
+        echo json_encode(['success' => $result, 'message' => $result ? 'Report dismissed' : 'Failed to dismiss']);
+        break;
+
+    // ── DELETE REPORTED GIG ───────────────────────────────────
+  case 'delete_reported_gig':
+    $gig_id = (int)($_POST['gig_id'] ?? 0);
+    if ($gig_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid gig ID']);
+        break;
+    }
+ 
+    // deleteReportedGig() now handles cancelling orders, refunding buyers,
+    // resolving reports, and soft deleting the gig — all in one transaction
+    $result = $gigModel->deleteReportedGig($gig_id);
+ 
+    echo json_encode([
+        'success' => $result,
+        'message' => $result
+            ? 'Gig deleted, orders cancelled and buyers refunded'
+            : 'Failed to delete gig'
+    ]);
+    break;
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Unknown action: ' . $action]);
