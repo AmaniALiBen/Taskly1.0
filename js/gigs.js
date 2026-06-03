@@ -60,6 +60,31 @@ async function fetchSubcategoriesByCategory(categoryId) {
         return [];
     }
 }
+// ============================================
+// FETCH USER AVATAR FROM DATABASE
+async function fetchUserAvatar() {
+    try {
+        const response = await fetch('/Taskly/controllers/getUser.php', {
+            cache: 'no-cache',
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+
+        if (data.loggedIn) {
+            const avatarImg = document.getElementById('user-avatar-img');
+            if (!avatarImg) return;
+
+            if (data.avatar && data.avatar !== '' && data.avatar !== 'null') {
+                avatarImg.src = data.avatar + '?t=' + Date.now();
+            } else if (data.username) {
+                avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
+            }
+        }
+    } catch (error) {
+        console.error('Avatar error:', error);
+    }
+}
+
 
 // ============================================
 // FETCH GIGS
@@ -209,7 +234,8 @@ function renderFilteredGigs() {
             </div>
             <div class="gig-body-content">
                 <div class="gig-seller-info">
-                    <div class="seller-avatar">${(gig.freelancer || 'U').charAt(0).toUpperCase()}</div>
+                  
+                    <img src="${gig.avatar || 'fallback-url'}" class="seller-avatar">
                     <span class="seller-name">${escapeHtml(gig.freelancer || 'Taskly Seller')}</span>
                 </div>
                 <span class="gig-category-badge">${escapeHtml(gig.sub_category || 'Service')}</span>
@@ -349,25 +375,6 @@ function setupSearch() {
     }
 }
 
-// ============================================
-// FETCH USER AVATAR
-// ============================================
-async function fetchUserAvatar() {
-    try {
-        const response = await fetch('/Taskly/php/getUser.php');
-        const data = await response.json();
-        if (data.loggedIn) {
-            const avatarImg = document.getElementById('user-avatar-img');
-            if (avatarImg) {
-                avatarImg.src = (data.avatar && data.avatar !== 'null')
-                    ? data.avatar
-                    : `https://ui-avatars.com/api/?name=${data.username?.charAt(0).toUpperCase() || 'U'}&background=7c3aed&color=fff&size=100`;
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching avatar:', error);
-    }
-}
 
 // ============================================
 // NAVIGATION

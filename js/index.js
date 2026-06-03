@@ -6,23 +6,7 @@
 const CAT_API = '/Taskly/controllers/CategoryController.php';
 const GIG_API = '/Taskly/controllers/GigController.php';
 
-const categoriesData = [
-    { id: 1, name: "Design", icon: "fa-palette", color: "#a78bfa", bg: "rgba(124, 58, 237, 0.15)" },
-    { id: 2, name: "Coding", icon: "fa-code", color: "#60a5fa", bg: "rgba(59, 130, 246, 0.15)" },
-    { id: 3, name: "Video", icon: "fa-video", color: "#f87171", bg: "rgba(239, 68, 68, 0.15)" },
-    { id: 4, name: "Writing", icon: "fa-pen", color: "#4ade80", bg: "rgba(34, 197, 94, 0.15)" },
-    { id: 5, name: "Ads", icon: "fa-bullhorn", color: "#facc15", bg: "rgba(234, 179, 8, 0.15)" },
-    { id: 6, name: "Music", icon: "fa-music", color: "#f472b6", bg: "rgba(236, 72, 153, 0.15)" }
-];
 
-const gigsList = [
-    { id: 1, title: "Modern Luxury Brand Identity Design", price: 80, category: "Design", freelancer: "Ahmed B.", avatar: "https://i.pravatar.cc/100?u=1", image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800", rating: 4.9 },
-    { id: 2, title: "Full Stack Web Application Development", price: 350, category: "Coding", freelancer: "Sara M.", avatar: "https://i.pravatar.cc/100?u=2", image: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=800", rating: 5.0 },
-    { id: 3, title: "Social Media Video Marketing Content", price: 120, category: "Video", freelancer: "Omar K.", avatar: "https://i.pravatar.cc/100?u=3", image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800", rating: 4.8 },
-    { id: 4, title: "Business Strategy & Growth Consulting", price: 150, category: "Ads", freelancer: "Layla T.", avatar: "https://i.pravatar.cc/100?u=4", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800", rating: 4.7 },
-    { id: 5, title: "UI/UX Design for Mobile App", price: 200, category: "Design", freelancer: "Nadia R.", avatar: "https://i.pravatar.cc/100?u=5", image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?w=800", rating: 4.9 },
-    { id: 6, title: "Backend API Development", price: 400, category: "Coding", freelancer: "Khaled M.", avatar: "https://i.pravatar.cc/100?u=6", image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800", rating: 4.8 }
-];
 
 // ============================================
 // AUTHENTICATION STATE GLOBAL VARIABLES
@@ -35,12 +19,7 @@ function getBasePath() {
     return window.location.pathname.includes('/pages/') ? '../' : '';
 }
 
-// ============================================
-// TEMPORARY - AUTO LOGIN FOR DEVELOPMENT
-// ============================================
-// 🔧 REMOVE THIS BLOCK WHEN LOGIN IS READY 🔧
-const DEV_MODE = true;
-// ============================================
+
 
 // ============================================
 // GLOBAL VARIABLES
@@ -259,9 +238,9 @@ async function initCategorySlider() {
         `;
     } else {
         // Default icons and colors for categories
-        const defaultIcons = ['fa-palette', 'fa-code', 'fa-video', 'fa-pen', 'fa-bullhorn', 'fa-music'];
+         const defaultIcons = ['fa-palette', 'fa-code', 'fa-video', 'fa-pen', 'fa-bullhorn', 'fa-music'];
         const defaultColors = ['#a78bfa', '#60a5fa', '#f87171', '#4ade80', '#facc15', '#f472b6'];
-        const defaultBgs = ['rgba(124,58,237,0.15)', 'rgba(59,130,246,0.15)', 'rgba(239,68,68,0.15)', 'rgba(34,197,94,0.15)', 'rgba(234,179,8,0.15)', 'rgba(236,72,153,0.15)'];
+         const defaultBgs = ['rgba(124,58,237,0.15)', 'rgba(59,130,246,0.15)', 'rgba(239,68,68,0.15)', 'rgba(34,197,94,0.15)', 'rgba(234,179,8,0.15)', 'rgba(236,72,153,0.15)'];
         
         container.innerHTML = categories.map((cat, index) => {
             const icon = cat.icon_url || defaultIcons[index % defaultIcons.length];
@@ -360,7 +339,7 @@ async function renderAvailableGigs() {
     const container = document.getElementById('gigs-main-container');
     if (!container) return;
 
-    // Show loading state
+    // Show loading state 
     container.innerHTML = `
         <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 60px;">
             <i class="fas fa-spinner fa-pulse" style="font-size: 2rem;"></i>
@@ -387,7 +366,7 @@ async function renderAvailableGigs() {
             </div>
             <div class="gig-body-content">
                 <div class="gig-seller-info">
-                    <img src="${gig.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(gig.freelancer || 'U') + '&background=7c3aed&color=fff'}" class="seller-avatar">
+                    <img src="${gig.avatar || 'fallback-url'}" class="seller-avatar">
                     <span class="seller-name">${escapeHtml(gig.freelancer || 'Taskly Seller')}</span>
                 </div>
                 <span class="gig-category-badge">${escapeHtml(gig.category)}</span>

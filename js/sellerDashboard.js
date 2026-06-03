@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCharCounter();
     setupAutoResize();
     updateSidebarProfile();
-    renderGigs();       // يعرض واجهة إدارة الخدمات
+   
     renderOrders();     // يعرض واجهة الطلبات
     renderTransactions();
 });

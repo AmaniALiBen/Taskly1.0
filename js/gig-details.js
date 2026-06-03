@@ -15,11 +15,13 @@ window.onload = () => {
     fetchGigDetails();
 };
 
-// ── FETCH USER ────────────────────────────────────────────────
 async function fetchUserData() {
     try {
-        const response = await fetch('/Taskly/php/getUser.php');
-        const data     = await response.json();
+        const response = await fetch('/Taskly/controllers/getUser.php', {
+            cache: 'no-cache',
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
 
         if (data.loggedIn) {
             currentUser = {
@@ -32,7 +34,7 @@ async function fetchUserData() {
             const avatarImg = document.getElementById('user-avatar-img');
             if (avatarImg) {
                 avatarImg.src = (data.avatar && data.avatar !== 'null')
-                    ? data.avatar
+                    ? data.avatar + '?t=' + Date.now()
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=7c3aed&color=fff&size=100`;
             }
         }
@@ -40,7 +42,6 @@ async function fetchUserData() {
         console.error('Error fetching user:', error);
     }
 }
-
 // ── FETCH GIG FROM DB ─────────────────────────────────────────
 async function fetchGigDetails() {
     const gigId = new URLSearchParams(window.location.search).get('id');
@@ -73,9 +74,9 @@ function loadPage() {
 
     // Seller
     document.getElementById('seller').innerText = gig.seller;
-    document.getElementById('avatar').src = gig.avatar
-        || `https://ui-avatars.com/api/?name=${encodeURIComponent(gig.seller)}&background=7c3aed&color=fff&size=100`;
+    document.getElementById('avatar').src = gig.avatar;
 
+        
     // Seller level badge
     const levelNames = { 1: 'New Seller', 2: 'Professional', 3: 'Expert' };
     document.getElementById('levelBadge').innerText = levelNames[gig.sellerLevel] || 'Seller';

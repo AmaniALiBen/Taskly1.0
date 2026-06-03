@@ -1,7 +1,5 @@
 // ========================================
 // SELLER GIGS MANAGEMENT
-// All gig-related functions for the seller dashboard
-// Talks to GigController.php via fetch()
 // ========================================
 
 const GIG_API = '/Taskly/controllers/GigController.php';
@@ -26,14 +24,10 @@ async function loadGigs() {
         const response = await fetch(`${GIG_API}?action=my_gigs`);
         const data = await response.json();
 
-        console.log('Gigs loaded:', data);
-
         if (data.success && data.gigs && data.gigs.length > 0) {
             const activeGigs = data.gigs.filter(g => g.status === 'active');
             const pausedGigs = data.gigs.filter(g => g.status === 'paused');
             updateGigStats(activeGigs.length, pausedGigs.length);
-
-            // Show active gigs by default
             renderGigsList(activeGigs);
         } else {
             updateGigStats(0, 0);
@@ -89,6 +83,11 @@ function renderGigsList(gigs) {
                         <button onclick="editGig(${gig.id})" class="control-btn" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
+                        <button onclick="toggleGigStatus(${gig.id}, '${gig.status}')"
+                                class="control-btn"
+                                title="${gig.status === 'active' ? 'Pause' : 'Activate'}">
+                            <i class="fas ${gig.status === 'active' ? 'fa-pause' : 'fa-play'}"></i>
+                        </button>
                         <button onclick="openDeleteModal(${gig.id})" class="control-btn" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -128,6 +127,33 @@ function filterGigs(status, event) {
         });
 }
 
+// ─── TOGGLE GIG STATUS (Pause / Activate) ────────────────────
+async function toggleGigStatus(id, currentStatus) {
+    const newIsActive = currentStatus === 'active' ? 0 : 1;
+
+    try {
+        const form = new FormData();
+        form.append('gig_id',    id);
+        form.append('is_active', newIsActive);
+
+        const response = await fetch(`${GIG_API}?action=toggle_status`, {
+            method: 'POST',
+            body:   form
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            showToast(newIsActive ? 'Gig activated' : 'Gig paused', 'success');
+            loadGigs();
+        } else {
+            showToast(result.message || 'Failed to update status', 'error');
+        }
+    } catch (err) {
+        console.error('Toggle error:', err);
+        showToast('Connection error', 'error');
+    }
+}
+
 // ─── EDIT GIG ─────────────────────────────────────────────────
 function editGig(id) {
     window.location.href = `/Taskly/pages/editGig.html?id=${id}`;
@@ -146,7 +172,6 @@ function closeDeleteModal() {
     gigIdToDelete = null;
 }
 
-// Wire up confirm delete button
 document.addEventListener('DOMContentLoaded', () => {
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     if (confirmBtn) {
@@ -177,4 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─── NAVIGATE TO CREATE GIG ───────────────────────────────────
 function showAddGigModal() {
     window.location.href = '/Taskly/pages/createGig.html';
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[c]));
 }

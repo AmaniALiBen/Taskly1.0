@@ -1,23 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* Add missing root variables at the very top */
-:root {
-    --primary-color: #7c3aed;
-    --primary-hover: #a78bfa;
-    --background-dark: #050509;
-    --background-deep: #1e1b4b;
-    --glass-white: rgba(255, 255, 255, 0.03);
-    --glass-card-bg: rgba(30, 27, 75, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #94a3b8;
-    --rating-gold: #fbbf24;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-}
-
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -28,25 +11,6 @@
     display: flex; 
     align-items: center; 
     gap: 12px; 
-}
-
-.back-btn { 
-    color: var(--text-secondary); 
-    text-decoration: none; 
-    width: 34px; 
-    height: 34px; 
-    border-radius: 8px;
-    background: var(--glass-white);
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    transition: 0.2s;
-    font-size: 1rem;
-}
-
-.back-btn:hover { 
-    color: var(--text-primary); 
-    background: var(--glass-border); 
 }
 
 /* Content Wrapper */

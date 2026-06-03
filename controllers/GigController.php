@@ -228,6 +228,51 @@ switch ($action) {
             echo json_encode(['success' => false, 'message' => 'Failed to submit report']);
         }
         break;
+        // ── TOGGLE GIG STATUS ─────────────────────────────────────────
+case 'toggle_status':
+    $gig_id    = (int)($_POST['gig_id'] ?? 0);
+    $is_active = (int)($_POST['is_active'] ?? 0);
+
+    if ($gig_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid gig ID']);
+        break;
+    }
+
+    $updated = $gigModel->toggleStatus($gig_id, $is_active);
+    echo json_encode([
+        'success' => $updated,
+        'message' => $updated
+            ? ($is_active ? 'Gig activated' : 'Gig paused')
+            : 'Failed to update status'
+    ]);
+    break;
+    // ── SELLER PROFILE ────────────────────────────────────────
+case 'seller_profile':
+    $seller_id = (int)($_GET['seller_id'] ?? 0);
+    if ($seller_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid seller ID']);
+        break;
+    }
+    $data = $gigModel->getSellerProfile($seller_id);
+    if (!$data) {
+        echo json_encode(['success' => false, 'message' => 'Seller not found']);
+        break;
+    }
+    echo json_encode(['success' => true, 'data' => $data]);
+    break;
+
+// ── SELLER PUBLIC GIGS ────────────────────────────────────
+case 'seller_gigs':
+    $seller_id = (int)($_GET['seller_id'] ?? 0);
+    $limit     = (int)($_GET['limit'] ?? 10);
+    if ($seller_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid seller ID']);
+        break;
+    }
+    $gigs = $gigModel->getPublicSellerGigs($seller_id, $limit);
+    echo json_encode(['success' => true, 'data' => $gigs]);
+    break;
+    
 
     default:
         http_response_code(400);

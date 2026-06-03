@@ -43,6 +43,13 @@ class Gig {
         return $stmt->fetch();
     }
 
+    public function toggleStatus($id, $is_active) {
+        $stmt = $this->db->prepare(
+            "UPDATE gigs SET is_active = ? WHERE id = ? AND is_deleted = FALSE"
+        );
+        return $stmt->execute([$is_active ? 1 : 0, $id]);
+    }
+
     // =========================================================================
     // 2. PACKAGES
     // =========================================================================
@@ -204,7 +211,7 @@ class Gig {
 
         $formattedPackages = [];
         foreach ($packages as $pkg) {
-            $type = $pkg['package_type'];
+            $type        = $pkg['package_type'];
             $featuresStmt = $this->db->prepare(
                 "SELECT feature_text FROM package_features WHERE package_id = ? ORDER BY id ASC"
             );
@@ -256,7 +263,7 @@ class Gig {
                 c.id as category_id, c.name as category,
                 sc.id as sub_category_id, sc.name as sub_category,
                 u.name as freelancer,
-                u.picture_name as avatar,
+                CONCAT('/Taskly/avatars/sellers/', u.picture_name) as avatar,
                 sd.level as seller_level,
                 (SELECT CONCAT('/Taskly/uploads/gig-images/', gi.id, '.', gi.extension)
                  FROM gig_images gi WHERE gi.gig_id = g.id
@@ -272,7 +279,7 @@ class Gig {
             LIMIT ?
         ");
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-         $stmt->execute();
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -281,13 +288,12 @@ class Gig {
     // =========================================================================
 
     public function getPublicGigDetails($gig_id) {
-        // Get basic gig info + seller info
         $stmt = $this->db->prepare("
             SELECT
                 g.id, g.title, g.description,
                 g.seller_id,
                 u.name as seller_name,
-                u.picture_name as seller_avatar,
+                CONCAT('/Taskly/avatars/sellers/', u.picture_name) as avatar,
                 sd.level as seller_level,
                 COALESCE(g.rating, 0) as rating,
                 0 as review_count
@@ -300,14 +306,15 @@ class Gig {
         $gig = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$gig) return null;
 
-        // Get packages with features
-        $packagesStmt = $this->db->prepare("SELECT * FROM gig_packages WHERE gig_id = ? ORDER BY FIELD(package_type, 'basic', 'standard', 'premium')");
+        $packagesStmt = $this->db->prepare("
+            SELECT * FROM gig_packages
+            WHERE gig_id = ?
+            ORDER BY FIELD(package_type, 'basic', 'standard', 'premium')
+        ");
         $packagesStmt->execute([$gig_id]);
         $packages = $packagesStmt->fetchAll();
 
         $formattedPackages = [];
-        $levelNames = ['beginner' => 'New Seller', 'level_1' => 'Professional', 'level_2' => 'Expert', 'top_rated' => 'Top Rated'];
-
         foreach ($packages as $pkg) {
             $type = $pkg['package_type'];
 
@@ -318,11 +325,9 @@ class Gig {
             $features    = $featuresStmt->fetchAll(PDO::FETCH_COLUMN);
             $isUnlimited = (int)$pkg['revisions_allowed'] >= 999;
 
-            // Format delivery string
             $days     = (int)$pkg['delivery_time_days'];
             $delivery = $days === 1 ? '1 Day Delivery' : "{$days} Days Delivery";
 
-            // Format revisions string
             $revisions = $isUnlimited
                 ? 'Unlimited Revisions'
                 : ((int)$pkg['revisions_allowed'] === 0
@@ -333,14 +338,13 @@ class Gig {
                 'id'        => (int)$pkg['id'],
                 'name'      => ucfirst($type),
                 'price'     => (float)$pkg['price'],
-                'desc'      => '',             // DB has no package description — leave empty
+                'desc'      => '',
                 'delivery'  => $delivery,
                 'revisions' => $revisions,
                 'features'  => $features
             ];
         }
 
-        // Get images
         $imagesStmt = $this->db->prepare("
             SELECT CONCAT('/Taskly/uploads/gig-images/', id, '.', extension) as url
             FROM gig_images WHERE gig_id = ? ORDER BY is_cover DESC, id ASC
@@ -348,21 +352,19 @@ class Gig {
         $imagesStmt->execute([$gig_id]);
         $images = $imagesStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        // Map seller level to a number the JS expects (1=new, 2=pro, 3=expert)
-         $levelMap = [
-         'raising star' => 1,
-          'top rated'    => 2,
-          'pro'          => 3
-            ];
+        $levelMap = [
+            'raising star' => 1,
+            'top rated'    => 2,
+            'pro'          => 3
+        ];
+
         return [
             'id'             => (int)$gig['id'],
             'title'          => $gig['title'],
             'desc'           => $gig['description'],
             'sellerId'       => (int)$gig['seller_id'],
             'seller'         => $gig['seller_name'],
-            'avatar'         => $gig['seller_avatar']
-                                    ? '/Taskly/uploads/avatars/' . $gig['seller_avatar']
-                                    : null,
+            'avatar'          => $gig['avatar'] ?? null,
             'sellerLevel'    => $levelMap[$gig['seller_level']] ?? 1,
             'gigRating'      => (float)$gig['rating'],
             'gigReviewCount' => (int)$gig['review_count'],
@@ -376,18 +378,77 @@ class Gig {
     // =========================================================================
 
     public function submitReport($gig_id, $reporter_id, $reason) {
-        // Check if this user already reported this gig
         $checkStmt = $this->db->prepare(
             "SELECT id FROM reports WHERE gig_id = ? AND reporter_id = ?"
         );
         $checkStmt->execute([$gig_id, $reporter_id]);
         if ($checkStmt->fetch()) return 'already_reported';
 
-       $stmt = $this->db->prepare(
-       "INSERT INTO reports (gig_id, reporter_id, reason, is_resolved)
-        VALUES (?, ?, ?, 0)"
-);
+        $stmt = $this->db->prepare(
+            "INSERT INTO reports (gig_id, reporter_id, reason, is_resolved)
+             VALUES (?, ?, ?, 0)"
+        );
         return $stmt->execute([$gig_id, $reporter_id, $reason]) ? 'ok' : 'error';
     }
+    
+    // =========================================================================
+// 9. SELLER PROFILE PAGE
+// =========================================================================
+
+public function getSellerProfile($seller_id) {
+    $stmt = $this->db->prepare("
+        SELECT
+            u.id, u.name, u.email,
+            CONCAT('/Taskly/avatars/sellers/', u.picture_name) as avatar,
+            sd.about_me, sd.experience, sd.level,
+            co.name as country,
+            COALESCE(AVG(g.rating), 0) as rating,
+            COUNT(DISTINCT g.id) as total_gigs
+        FROM users u
+        JOIN seller_details sd ON sd.seller_id = u.id
+       LEFT JOIN countries co ON co.id = sd.country_id
+        LEFT JOIN gigs g ON g.seller_id = u.id AND g.is_deleted = 0
+        WHERE u.id = ? AND u.is_deleted = 0
+        GROUP BY u.id
+    ");
+    $stmt->execute([$seller_id]);
+    $seller = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$seller) return null;
+
+    // Get languages
+    $langStmt = $this->db->prepare("
+        SELECT l.name FROM seller_languages sl
+        JOIN languages l ON l.id = sl.language_id
+        WHERE sl.seller_id = ?
+    ");
+    $langStmt->execute([$seller_id]);
+    $seller['languages'] = $langStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    return $seller;
+}
+
+public function getPublicSellerGigs($seller_id, $limit = 10) {
+    $limit = (int)$limit;
+    $stmt = $this->db->prepare("
+        SELECT
+            g.id, g.title,
+            COALESCE((SELECT MIN(price) FROM gig_packages WHERE gig_id = g.id), 0) as price,
+            c.name as category,
+            COALESCE(g.rating, 0) as rating,
+            (SELECT CONCAT('/Taskly/uploads/gig-images/', gi.id, '.', gi.extension)
+             FROM gig_images gi WHERE gi.gig_id = g.id
+             ORDER BY gi.is_cover DESC LIMIT 1) as image
+        FROM gigs g
+        JOIN sub_categories sc ON sc.id = g.sub_category_id
+        JOIN categories c ON c.id = sc.category_id
+        WHERE g.seller_id = ? AND g.is_active = 1 AND g.is_deleted = 0
+        ORDER BY g.id DESC
+        LIMIT ?
+    ");
+    $stmt->bindValue(1, $seller_id, PDO::PARAM_INT);
+    $stmt->bindValue(2, $limit,     PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 }
 ?>
