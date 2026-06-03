@@ -1,196 +1,178 @@
-const sellerOrdersData = [
-    {
-        id: 1,
-        title: "Professional Tech Logo Design",
-        buyer: { name: "John Doe", avatar: "https://i.pravatar.cc/100?u=buyer1" },
-        amount: 150,
-        dueDate: "Apr 25, 2026",
-        status: "Awaiting Requirements",
-        statusCode: "awaiting",
-        image: "https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=400",
-        requirementsSubmitted: false
-    },
-    {
-        id: 2,
-        title: "Responsive Landing Page Build",
-        buyer: { name: "Sarah Johnson", avatar: "https://i.pravatar.cc/100?u=buyer2" },
-        amount: 350,
-        dueDate: "Apr 28, 2026",
-        status: "In Progress",
-        statusCode: "active",
-        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=400",
-        requirementsSubmitted: true
-    },
-    {
-        id: 3,
-        title: "10 Social Media Copy Posts",
-        buyer: { name: "Michael Chen", avatar: "https://i.pravatar.cc/100?u=buyer3" },
-        amount: 120,
-        dueDate: "Apr 23, 2026",
-        status: "Completed",
-        statusCode: "completed",
-        image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=400",
-        requirementsSubmitted: true
-    },
-    {
-        id: 4,
-        title: "E-commerce Website Development",
-        buyer: { name: "Emily Watson", avatar: "https://i.pravatar.cc/100?u=buyer4" },
-        amount: 850,
-        dueDate: "May 5, 2026",
-        status: "Awaiting Requirements",
-        statusCode: "awaiting",
-        image: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=400",
-        requirementsSubmitted: false
-    },
-    {
-        id: 5,
-        title: "Mobile App UI/UX Design",
-        buyer: { name: "David Kim", avatar: "https://i.pravatar.cc/100?u=buyer5" },
-        amount: 450,
-        dueDate: "Apr 30, 2026",
-        status: "In Progress",
-        statusCode: "active",
-        image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?q=80&w=400",
-        requirementsSubmitted: true
+// ============================================
+// SELLER ORDERS - SELLER DASHBOARD
+// ============================================
+
+const ORDER_API = '/Taskly/controllers/OrderController.php';
+
+let sellerOrders  = [];
+let currentOrderFilter = 'all';
+
+
+// ============================================
+// LOAD ORDERS FROM DATABASE
+// ============================================
+async function loadSellerOrders() {
+    const listEl = document.getElementById('orders-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading orders...</p>
+        </div>`;
+
+    try {
+        const response = await fetch(`${ORDER_API}?action=seller_orders`);
+        const result   = await response.json();
+
+        if (result.success) {
+            sellerOrders = result.data;
+            updateOrderStats();
+            filterOrders(currentOrderFilter);
+        } else {
+            listEl.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>${result.message || 'Failed to load orders'}</p>
+                </div>`;
+        }
+    } catch (error) {
+        console.error('Error loading orders:', error);
+        listEl.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Connection error</p>
+            </div>`;
     }
-];
-
-let totalEarnings = 0;
-let completedOrders = 0;
-let activeOrders = 0;
-let awaitingOrders = 0;
-
-function calculateStats() {
-    totalEarnings = sellerOrdersData
-        .filter(order => order.statusCode === 'completed')
-        .reduce((sum, order) => sum + order.amount, 0);
-    
-    completedOrders = sellerOrdersData.filter(order => order.statusCode === 'completed').length;
-    activeOrders = sellerOrdersData.filter(order => order.statusCode === 'active').length;
-    awaitingOrders = sellerOrdersData.filter(order => order.statusCode === 'awaiting').length;
-    
-    document.getElementById('total-earned').textContent = `$${totalEarnings}`;
-    document.getElementById('total-earnings-card').textContent = `$${totalEarnings}`;
-    document.getElementById('completed-count').textContent = completedOrders;
-    document.getElementById('active-orders-count').textContent = activeOrders;
-    document.getElementById('awaiting-count').textContent = awaitingOrders;
 }
 
-function renderOrders(filter = 'awaiting') {
-    const listElement = document.getElementById('orders-list');
-    listElement.innerHTML = '';
+// ============================================
+// UPDATE STATS CARDS
+// ============================================
+function updateOrderStats() {
+    const total     = document.getElementById('total-orders-card');
+    const active    = document.getElementById('active-orders-count');
+    const completed = document.getElementById('completed-count');
+    const awaiting  = document.getElementById('awaiting-count');
 
-    const filtered = sellerOrdersData.filter(order => {
-        if (filter === 'awaiting') return order.statusCode === 'awaiting';
-        if (filter === 'active') return order.statusCode === 'active';
-        if (filter === 'completed') return order.statusCode === 'completed';
-        if (filter === 'cancelled') return order.statusCode === 'cancelled';
-        return true;
+    if (total)     total.innerText     = sellerOrders.length;
+    if (active)    active.innerText    = sellerOrders.filter(o => o.status === 'in_progress' || o.status === 'in_revision' || o.status === 'delivered').length;
+    if (completed) completed.innerText = sellerOrders.filter(o => o.status === 'completed').length;
+    if (awaiting)  awaiting.innerText  = sellerOrders.filter(o => o.status === 'awaiting_requirements').length;
+}
+
+// ============================================
+// STATUS DISPLAY MAP
+// ============================================
+function getStatusDisplay(status) {
+    const map = {
+        'awaiting_requirements': { label: 'Awaiting Requirements', code: 'warning'   },
+        'in_progress':           { label: 'In Progress',           code: 'active'    },
+        'delivered':             { label: 'Delivered',             code: 'completed' },
+        'in_revision':           { label: 'In Revision',           code: 'warning'   },
+        'completed':             { label: 'Completed',             code: 'completed' },
+        'cancelled':             { label: 'Cancelled',             code: 'cancelled' }
+    };
+    return map[status] || { label: status, code: 'active' };
+}
+
+function getFilterCode(status) {
+    if (status === 'awaiting_requirements')                          return 'awaiting';
+    if (status === 'in_progress' || status === 'in_revision' || status === 'delivered') return 'active';
+    if (status === 'completed')                                      return 'completed';
+    if (status === 'cancelled')                                      return 'cancelled';
+    return 'active';
+}
+
+// ============================================
+// FILTER & RENDER ORDERS
+// ============================================
+function filterOrders(filter) {
+    currentOrderFilter = filter;
+
+    // Update active tab
+    document.querySelectorAll('#orders-tab .tab-item').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.innerText.trim().toLowerCase().includes(filter === 'awaiting' ? 'awaiting' : filter)) {
+            tab.classList.add('active');
+        }
     });
 
+    renderOrders(filter);
+}
+
+function renderOrders(filter) {
+    const listEl = document.getElementById('orders-list');
+    if (!listEl) return;
+
+    const filtered = filter === 'all' 
+             ? sellerOrders 
+             : sellerOrders.filter(o => getFilterCode(o.status) === filter);
     if (filtered.length === 0) {
-        listElement.innerHTML = `
+        listEl.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-box-open"></i>
-                <p>No orders found</p>
-                <span>You don't have any ${filter} orders yet.</span>
-            </div>
-        `;
+                <i class="fas fa-inbox"></i>
+                <p>No ${filter} orders</p>
+                <span>Orders will appear here when buyers place them</span>
+            </div>`;
         return;
     }
 
-    filtered.forEach(order => {
-        let badgeClass = '';
-        switch(order.statusCode) {
-            case 'awaiting':
-                badgeClass = 'status-awaiting';
-                break;
-            case 'active':
-                badgeClass = 'status-active';
-                break;
-            case 'completed':
-                badgeClass = 'status-completed';
-                break;
-            case 'cancelled':
-                badgeClass = 'status-cancelled';
-                break;
-            default:
-                badgeClass = 'status-active';
-        }
+    listEl.innerHTML = filtered.map(order => {
+        const statusDisplay = getStatusDisplay(order.status);
+        const deadline      = order.deadline
+            ? new Date(order.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'No deadline';
 
-        const cardHtml = `
-            <div class="order-card" onclick="goToOrder(${order.id})">
+        const buyerAvatar = (order.buyer_avatar && order.buyer_avatar !== 'null')
+            ? order.buyer_avatar
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(order.buyer_name || 'B')}&background=7c3aed&color=fff&size=40`;
+
+            
+
+        return `
+            <div class="order-card" onclick="goToOrderTracking(${order.id})">
                 <div class="order-img-container">
-                    <img src="${order.image}" class="order-img">
+                    <img src="${order.gig_image || '/Taskly/images/default-gig.jpg'}"
+                         class="order-img"
+                         alt="${escapeHtml(order.gig_title)}"
+                         onerror="this.src='/Taskly/images/default-gig.jpg'">
                 </div>
                 <div class="order-details-flex">
                     <div class="order-main-info">
-                        <h3>${order.title}</h3>
-                        <div class="buyer">
-                            <img src="${order.buyer.avatar}"> <span>${order.buyer.name}</span>
+                        <h3>${escapeHtml(order.gig_title)}</h3>
+                        <div class="seller">
+                            <img src="${buyerAvatar}" onerror="this.src='https://ui-avatars.com/api/?name=B&background=7c3aed&color=fff&size=40'">
+                            <span>${escapeHtml(order.buyer_name)}</span>
                         </div>
                     </div>
                     <div class="order-meta-group">
                         <div class="meta-item">
-                            <span class="label">Amount</span>
-                            <span class="value price-value">$${order.amount}</span>
-                        </div>
-                        <div class="meta-item">
                             <span class="label">Due Date</span>
-                            <span class="value">${order.dueDate}</span>
+                            <span class="value">${deadline}</span>
                         </div>
-                        <div class="status-badge ${badgeClass}">
-                            ${order.status}
+                        <div class="status-badge status-${statusDisplay.code}">
+                            ${statusDisplay.label}
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-        listElement.innerHTML += cardHtml;
-    });
+            </div>`;
+    }).join('');
 }
 
-function filterOrders(type) {
-    document.querySelectorAll('.tab-item').forEach(tab => {
-        tab.classList.remove('active');
-        if (tab.innerText.toLowerCase().replace(/\s/g, '') === type) tab.classList.add('active');
-    });
-    renderOrders(type);
+// ============================================
+// NAVIGATION
+// ============================================
+function goToOrderTracking(orderId) {
+    window.location.href = `order-tracking.html?id=${orderId}`;
 }
 
-function goToOrder(orderId) {
-    window.location.href = `FreelancerOrderTracking.html?id=${orderId}`;
+// ============================================
+// HELPERS
+// ============================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    })[m]);
 }
-
-// Add empty state styles
-const style = document.createElement('style');
-style.textContent = `
-    .empty-state {
-        text-align: center;
-        padding: 60px;
-        background: var(--glass-card-bg);
-        border-radius: 16px;
-        border: 1px solid var(--glass-border);
-    }
-    .empty-state i {
-        font-size: 3rem;
-        color: var(--text-secondary);
-        margin-bottom: 15px;
-        opacity: 0.5;
-    }
-    .empty-state p {
-        font-size: 1.1rem;
-        margin-bottom: 5px;
-    }
-    .empty-state span {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-    }
-`;
-document.head.appendChild(style);
-
-window.onload = () => {
-    calculateStats();
-    renderOrders('awaiting');
-};
