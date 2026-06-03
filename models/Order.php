@@ -74,7 +74,6 @@ class Order {
     // 3. CREATE ORDER AFTER PAYMENT
     // =========================================================================
     public function createOrder($buyer_id, $seller_id, $package_id) {
-        // جلب عدد المراجعات المسموحة من الباقة
         $stmt = $this->db->prepare("SELECT revisions_allowed, delivery_time_days FROM gig_packages WHERE id = ?");
         $stmt->execute([$package_id]);
         $package = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -99,7 +98,6 @@ class Order {
     // 4. SUBMIT REQUIREMENTS
     // =========================================================================
     public function submitRequirements($order_id, $buyer_id, $requirements_text) {
-        // التحقق من أن الطلب يخص هذا المستخدم
         $stmt = $this->db->prepare("
             SELECT o.*, gp.delivery_time_days 
             FROM orders o 
@@ -117,7 +115,6 @@ class Order {
             return ['success' => false, 'message' => 'Requirements already submitted'];
         }
         
-        // حساب deadline = now + delivery_time_days
         $deliveryDays = $order['delivery_time_days'];
         $startedAt = date('Y-m-d H:i:s');
         $deadline = date('Y-m-d H:i:s', strtotime("+{$deliveryDays} days"));
@@ -142,13 +139,62 @@ class Order {
     }
 
     // =========================================================================
-    // 5. GET SINGLE ORDER DETAILS
+    // 5. SAVE ORDER FILE
+    // =========================================================================
+    public function saveOrderFile($order_id, $file_type, $extension, $original_name) {
+        $query = "INSERT INTO order_files (order_id, file_type, extension, uploaded_at, file_name) 
+                  VALUES (?, ?, ?, NOW(), ?)";
+        $stmt = $this->db->prepare($query);
+        $result = $stmt->execute([$order_id, $file_type, $extension, $original_name]);
+        
+        if ($result) {
+            return $this->db->lastInsertId();
+        }
+        return false;
+    }
+
+    // =========================================================================
+    // 6. GET ORDER FILES
+    // =========================================================================
+    public function getOrderFiles($order_id, $file_type = null) {
+        if ($file_type) {
+            $stmt = $this->db->prepare("
+                SELECT * FROM order_files 
+                WHERE order_id = ? AND file_type = ? 
+                ORDER BY uploaded_at ASC
+            ");
+            $stmt->execute([$order_id, $file_type]);
+        } else {
+            $stmt = $this->db->prepare("
+                SELECT * FROM order_files 
+                WHERE order_id = ? 
+                ORDER BY uploaded_at ASC
+            ");
+            $stmt->execute([$order_id]);
+        }
+        
+        $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($files as &$file) {
+            $timestamp = strtotime($file['uploaded_at']);
+            $file['saved_path'] = '/Taskly/uploads/' . $file['file_type'] . 's/' . $file['id'] . '_' . $timestamp . '.' . $file['extension'];
+        }
+        
+        return $files;
+    }
+
+    // =========================================================================
+    // 7. GET SINGLE ORDER DETAILS
     // =========================================================================
     public function getOrderDetails($order_id, $user_id) {
         $stmt = $this->db->prepare("
             SELECT 
                 o.*,
                 g.title as gig_title,
+                (SELECT CONCAT('/Taskly/uploads/gig-images/', gi.id, '.', gi.extension)
+                 FROM gig_images gi
+                 WHERE gi.gig_id = g.id
+                 ORDER BY gi.is_cover DESC LIMIT 1) as gig_image,
                 gp.package_type,
                 gp.price,
                 gp.delivery_time_days,
@@ -165,11 +211,18 @@ class Order {
             WHERE o.id = ? AND (o.buyer_id = ? OR o.seller_id = ?)
         ");
         $stmt->execute([$order_id, $user_id, $user_id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($order) {
+            $order['requirements_files'] = $this->getOrderFiles($order_id, 'requirement');
+            $order['delivery_files'] = $this->getOrderFiles($order_id, 'delivery');
+        }
+        
+        return $order;
     }
 
     // =========================================================================
-    // 6. UPDATE ORDER STATUS
+    // 8. UPDATE ORDER STATUS
     // =========================================================================
     public function updateOrderStatus($order_id, $new_status) {
         $allowedStatuses = ['in_progress', 'delivered', 'in_revision', 'completed', 'cancelled'];
@@ -179,6 +232,42 @@ class Order {
         
         $stmt = $this->db->prepare("UPDATE orders SET status = ? WHERE id = ?");
         return $stmt->execute([$new_status, $order_id]);
+    }
+
+    // =========================================================================
+    // 9. SEND MESSAGE
+    // =========================================================================
+    public function sendMessage($order_id, $sender_id, $content) {
+        $query = "INSERT INTO order_messages (order_id, sender_id, content, sent_at) 
+                  VALUES (?, ?, ?, NOW())";
+        $stmt = $this->db->prepare($query);
+        return $stmt->execute([$order_id, $sender_id, $content]);
+    }
+
+    // =========================================================================
+    // 10. GET MESSAGES
+    // =========================================================================
+    public function getMessages($order_id, $after_time = null) {
+        if ($after_time) {
+            $stmt = $this->db->prepare("
+                SELECT m.*, u.name as sender_name, u.role
+                FROM order_messages m
+                JOIN users u ON m.sender_id = u.id
+                WHERE m.order_id = ? AND m.sent_at > ?
+                ORDER BY m.sent_at ASC
+            ");
+            $stmt->execute([$order_id, $after_time]);
+        } else {
+            $stmt = $this->db->prepare("
+                SELECT m.*, u.name as sender_name, u.role
+                FROM order_messages m
+                JOIN users u ON m.sender_id = u.id
+                WHERE m.order_id = ?
+                ORDER BY m.sent_at ASC
+            ");
+            $stmt->execute([$order_id]);
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 ?>
