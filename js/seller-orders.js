@@ -164,7 +164,7 @@ function renderOrders(filter) {
 // NAVIGATION
 // ============================================
 function goToOrderTracking(orderId) {
-    window.location.href = `order-tracking.html?id=${orderId}`;
+    window.location.href = `freelancerOrderTracking.html?id=${orderId}`;
 }
 
 // ============================================

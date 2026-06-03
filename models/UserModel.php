@@ -149,5 +149,62 @@ class UserModel {
         $stmt->execute([$sellerId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    /**
+     * Get all sellers with their details for admin panel
+     */
+    public function getAllSellers() {
+        $sql = "
+            SELECT 
+                u.id, 
+                u.name, 
+                u.email, 
+                u.picture_name, 
+                u.is_active
+            FROM users u
+            WHERE u.role = 'seller' AND u.is_deleted = 0
+            ORDER BY u.id DESC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all buyers (customers) with their details for admin panel
+     */
+    public function getAllBuyers() {
+        $sql = "
+            SELECT 
+                u.id, 
+                u.name, 
+                u.email, 
+                u.picture_name, 
+                u.is_active
+            FROM users u
+            WHERE u.role = 'buyer' AND u.is_deleted = 0
+            ORDER BY u.id DESC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Toggle user status (activate/suspend) - Admin only
+     */
+    public function toggleUserStatus($userId, $isActive) {
+        $sql = "UPDATE users SET is_active = ? WHERE id = ? AND role != 'admin'";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$isActive ? 1 : 0, $userId]);
+    }
+
+    /**
+     * Delete user (soft delete) - Admin only
+     */
+    public function deleteUser($userId) {
+        $sql = "UPDATE users SET is_deleted = 1 WHERE id = ? AND role != 'admin'";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$userId]);
+    }
 }
 ?>
