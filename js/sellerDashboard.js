@@ -908,3 +908,351 @@ function escapeHtml(str) {
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     })[m]);
 }
+
+
+
+// ========================================
+// REAL-TIME DATABASE CHANGES DETECTION
+// ========================================
+
+let pollingInterval = null;
+let lastUpdateTime = {
+    wallet: null,
+    orders: null,
+    gigs: null,
+    stats: null
+};
+
+// ✅ بدء المراقبة المستمرة للتغييرات
+function startRealTimeMonitoring() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    
+    // مراقبة كل 10 ثواني (تغيير حسب الحاجة)
+    pollingInterval = setInterval(() => {
+        checkDatabaseChanges();
+    }, 10000); // 10 ثواني
+}
+
+// ✅ التحقق من التغييرات في قاعدة البيانات
+async function checkDatabaseChanges() {
+    try {
+        // 1. التحقق من تغييرات المحفظة
+        await checkWalletChanges();
+        
+        // 2. التحقق من تغييرات الطلبات
+        await checkOrdersChanges();
+        
+        // 3. التحقق من تغييرات الخدمات
+        await checkGigsChanges();
+        
+        // 4. التحقق من تغييرات الإحصائيات
+        await checkStatsChanges();
+        
+    } catch (error) {
+        console.error('Error checking changes:', error);
+    }
+}
+
+// ✅ التحقق من تغييرات المحفظة
+async function checkWalletChanges() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentBalance = data.balance;
+            const lastBalance = sellerData.balance;
+            
+            if (currentBalance !== lastBalance) {
+                // ✅ الرصيد تغير - تحديث الواجهة
+                console.log('💰 Wallet balance changed:', lastBalance, '->', currentBalance);
+                
+                sellerData.balance = currentBalance;
+                updateStats();
+                loadWalletData();
+                
+                // عرض إشعار
+                const difference = currentBalance - lastBalance;
+                if (difference > 0) {
+                    showToast(`+$${difference.toFixed(2)} added to your wallet`, 'success');
+                } else if (difference < 0) {
+                    showToast(`-$${Math.abs(difference).toFixed(2)} withdrawn from wallet`, 'info');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking wallet:', error);
+    }
+}
+
+// ✅ التحقق من تغييرات الطلبات
+let lastOrdersCount = 0;
+let lastOrdersStatus = {};
+
+async function checkOrdersChanges() {
+    try {
+        const response = await fetch(`${ORDERS_API}?action=seller_orders&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentOrders = data.data;
+            const currentCount = currentOrders.length;
+            
+            // حساب عدد الطلبات الجديدة والمحدثة
+            let newOrders = [];
+            let updatedOrders = [];
+            
+            if (lastOrdersCount === 0) {
+                lastOrdersCount = currentCount;
+                lastOrdersStatus = {};
+            }
+            
+            // تخزين الحالة الحالية للطلبات
+            const currentStatus = {};
+            currentOrders.forEach(order => {
+                currentStatus[order.id] = order.status;
+            });
+            
+            // التحقق من الطلبات الجديدة
+            if (currentCount > lastOrdersCount) {
+                newOrders = currentOrders.filter(order => !lastOrdersStatus[order.id]);
+            }
+            
+            // التحقق من الطلبات التي تغيرت حالتها
+            for (const [orderId, oldStatus] of Object.entries(lastOrdersStatus)) {
+                if (currentStatus[orderId] && currentStatus[orderId] !== oldStatus) {
+                    updatedOrders.push({
+                        id: orderId,
+                        oldStatus: oldStatus,
+                        newStatus: currentStatus[orderId]
+                    });
+                }
+            }
+            
+            // إذا وجدت تغييرات
+            if (newOrders.length > 0 || updatedOrders.length > 0) {
+                console.log('📦 Orders changed:', { newOrders, updatedOrders });
+                
+                // تحديث واجهة الطلبات
+                if (document.getElementById('orders-tab')?.classList.contains('active')) {
+                    await loadSellerOrders();
+                } else {
+                    // تحديث مؤشر وجود طلبات جديدة
+                    updateOrdersBadge(newOrders.length);
+                }
+                
+                // إشعارات للطلبات الجديدة
+                newOrders.forEach(order => {
+                    showToast(`New order received: ${order.gig_title}`, 'success');
+                });
+                
+                // إشعارات للطلبات المحدثة
+                updatedOrders.forEach(order => {
+                    const statusMessages = {
+                        'in_progress': 'Order is now in progress',
+                        'delivered': 'Order has been delivered',
+                        'completed': 'Order completed',
+                        'cancelled': 'Order cancelled'
+                    };
+                    const message = statusMessages[order.newStatus] || `Order #${order.id} status: ${order.newStatus}`;
+                    showToast(message, 'info');
+                });
+                
+                // تحديث الإحصائيات
+                await updateStats();
+            }
+            
+            // تحديث القيم المخزنة
+            lastOrdersCount = currentCount;
+            lastOrdersStatus = currentStatus;
+        }
+    } catch (error) {
+        console.error('Error checking orders:', error);
+    }
+}
+
+// ✅ عرض badge للطلبات الجديدة
+function updateOrdersBadge(count) {
+    let badge = document.querySelector('.orders-badge');
+    const ordersTab = document.querySelector('[onclick*="switchTab(\'orders\')"]');
+    
+    if (!badge && ordersTab) {
+        badge = document.createElement('span');
+        badge.className = 'orders-badge';
+        ordersTab.appendChild(badge);
+    }
+    
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// ✅ التحقق من تغييرات الخدمات
+let lastGigsCount = 0;
+
+async function checkGigsChanges() {
+    try {
+        const response = await fetch('/Taskly/controllers/GigController.php?action=my_gigs&t=${Date.now()}');
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentCount = data.gigs.length;
+            
+            if (currentCount !== lastGigsCount) {
+                console.log('🎯 Gigs changed:', lastGigsCount, '->', currentCount);
+                
+                if (document.getElementById('gigs-tab')?.classList.contains('active')) {
+                    await loadGigs();
+                }
+                
+                lastGigsCount = currentCount;
+                await updateStats();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking gigs:', error);
+    }
+}
+
+// ✅ التحقق من تغييرات الإحصائيات
+async function checkStatsChanges() {
+    try {
+        const response = await fetch(`${WALLET_API}?action=get_data&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // تحديث الإحصائيات إذا كانت مختلفة
+            const currentStats = {
+                balance: data.balance,
+                pending: data.pending || 0,
+                totalEarned: data.total_earned || 0
+            };
+            
+            if (currentStats.balance !== sellerData.balance ||
+                currentStats.pending !== sellerData.pending ||
+                currentStats.totalEarned !== sellerData.totalEarned) {
+                
+                sellerData.balance = currentStats.balance;
+                sellerData.pending = currentStats.pending;
+                sellerData.totalEarned = currentStats.totalEarned;
+                updateStats();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking stats:', error);
+    }
+}
+
+// ✅ تحديث فوري عند العودة للصفحة (من علامة تبويب أخرى)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        console.log('🔄 Page visible - checking all data');
+        refreshAllData();
+    }
+});
+
+// ✅ تحديث جميع البيانات
+async function refreshAllData() {
+    await loadWalletData();
+    await loadSellerOrders();
+    await loadGigs();
+    await updateStats();
+   
+}
+
+// ✅ إضافة CSS للـ badge
+function addBadgeStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .orders-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+        
+        .nav-item {
+            position: relative;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .data-changed {
+            animation: pulse 0.5s ease;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ✅ إضافة مؤشر تحديث مرئي للعناصر المتغيرة
+function animateDataChange(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.classList.add('data-changed');
+        setTimeout(() => {
+            element.classList.remove('data-changed');
+        }, 500);
+    }
+}
+
+// ✅ تجاوز دوال التحميل لإضافة تأثير بصري
+const originalUpdateStats = updateStats;
+window.updateStats = function() {
+    originalUpdateStats();
+    animateDataChange('availableBalance');
+    animateDataChange('pendingBalance');
+};
+
+// ========================================
+// تهيئة النظام
+// ========================================
+
+// بدء المراقبة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    addBadgeStyles();
+    startRealTimeMonitoring();
+    
+    // تهيئة القيم الأولية
+    setTimeout(() => {
+        if (typeof loadSellerOrders === 'function') {
+            loadSellerOrders().then(() => {
+                lastOrdersCount = window.currentOrdersCount || 0;
+            });
+        }
+        if (typeof loadGigs === 'function') {
+            loadGigs().then(() => {
+                lastGigsCount = window.currentGigsCount || 0;
+            });
+        }
+    }, 2000);
+});
+
+// إيقاف المراقبة عند مغادرة الصفحة
+window.addEventListener('beforeunload', () => {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+    }
+});
+
+// تصدير الدوال للاستخدام الخارجي
+window.startRealTimeMonitoring = startRealTimeMonitoring;
+window.refreshAllData = refreshAllData;

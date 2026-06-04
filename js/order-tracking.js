@@ -446,7 +446,17 @@ async function submitRating() {
     
     const orderId = getOrderIdFromUrl();
     
+    // تعطيل زر الإرسال
+    const submitBtn = document.querySelector('#ratingModal .button-primary');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Submit';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    }
+    
     try {
+        console.log('Sending rating:', { order_id: orderId, rating: rating });
+        
         const response = await fetch(`${ORDERS_API}?action=submit_rating`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -457,23 +467,35 @@ async function submitRating() {
         });
         
         const data = await response.json();
+        console.log('Rating response:', data);
         
         if (data.success) {
             showToast(`Thank you for your ${rating}-star rating!`, 'success');
             ratingSubmitted = true;
             
-            // تحديث orderData محلياً
             if (orderData) {
                 orderData.rating_score = rating;
             }
             
+            // إغلاق المودال
             closeRatingModal();
+            
+            // تحديث الصفحة لإظهار أن التقييم تم
+            setTimeout(() => {
+                refreshOrderPage();
+            }, 500);
+            
         } else {
             showToast(data.message || 'Failed to submit rating', 'error');
         }
     } catch (error) {
         console.error('Error submitting rating:', error);
-        showToast('Failed to submit rating. Please try again.', 'error');
+        showToast('Network error: Failed to submit rating', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 }
 
@@ -941,4 +963,403 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 window.addEventListener('beforeunload', function() {
     stopMessagePolling();
+});
+
+
+// ============================================
+// REAL-TIME ORDER UPDATES (AJAX Polling)
+// ============================================
+
+let orderPollingInterval = null;
+let lastOrderData = null;
+let lastMessagesCount = 0;
+let lastDeliveryCount = 0;
+let isPageActive = true;
+
+// ✅ بدء مراقبة التغييرات
+function startOrderMonitoring() {
+    if (orderPollingInterval) clearInterval(orderPollingInterval);
+    
+    // مراقبة كل 5 ثواني (للمحادثة والتحديثات)
+    orderPollingInterval = setInterval(() => {
+        if (isPageActive && currentOrderId) {
+            checkOrderChanges();
+            checkNewMessages();
+            checkDeliveryChanges();
+        }
+    }, 5000); // 5 ثواني
+}
+
+// ✅ إيقاف المراقبة
+function stopOrderMonitoring() {
+    if (orderPollingInterval) {
+        clearInterval(orderPollingInterval);
+        orderPollingInterval = null;
+    }
+}
+
+// ✅ التحقق من تغييرات الطلب (الحالة، المراجعات، إلخ)
+async function checkOrderChanges() {
+    try {
+        const orderId = getOrderIdFromUrl();
+        if (!orderId) return;
+        
+        const response = await fetch(`${ORDERS_API}?action=get_order&order_id=${orderId}&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.order) {
+            const newOrderData = data.order;
+            
+            // حفظ البيانات القديمة للمقارنة
+            if (!lastOrderData) {
+                lastOrderData = { ...newOrderData };
+                return;
+            }
+            
+            let hasChanges = false;
+            
+            // 1. التحقق من تغيير حالة الطلب
+            if (lastOrderData.status !== newOrderData.status) {
+                console.log('📊 Order status changed:', lastOrderData.status, '->', newOrderData.status);
+                hasChanges = true;
+                
+               
+                
+                // تحديث واجهة الحالة
+                updateStatusDisplay(newOrderData.status);
+            }
+            
+            // 2. التحقق من تغيير عدد المراجعات المتبقية
+            if (lastOrderData.left_revisions !== newOrderData.left_revisions) {
+                console.log('🔄 Revisions left changed:', lastOrderData.left_revisions, '->', newOrderData.left_revisions);
+                hasChanges = true;
+                updateRevisionsDisplay(newOrderData.left_revisions, newOrderData.revisions_allowed);
+            }
+            
+            // 3. التحقق من وجود ملفات تسليم جديدة
+            if (newOrderData.delivery_files && lastOrderData.delivery_files) {
+                if (newOrderData.delivery_files.length !== lastOrderData.delivery_files.length) {
+                    console.log('📎 New delivery files added');
+                    hasChanges = true;
+                }
+            } else if (newOrderData.delivery_files && !lastOrderData.delivery_files) {
+                hasChanges = true;
+            }
+            
+            // 4. التحقق من تغيير الموعد النهائي
+            if (lastOrderData.deadline !== newOrderData.deadline) {
+                console.log('📅 Deadline changed');
+                hasChanges = true;
+                if (newOrderData.deadline) {
+                    const deadlineDate = new Date(newOrderData.deadline);
+                    
+                }
+            }
+            
+            // 5. التحقق من إضافة متطلبات جديدة (إذا كان الطلب لا يزال في مرحلة الانتظار)
+            if (lastOrderData.requirements_text !== newOrderData.requirements_text && newOrderData.requirements_text) {
+                console.log('📝 Requirements submitted');
+                hasChanges = true;
+            }
+            
+            // إذا حدثت تغييرات، تحديث الواجهة بالكامل
+            if (hasChanges) {
+                await refreshOrderPage();
+            }
+            
+            // تحديث البيانات المخزنة
+            lastOrderData = { ...newOrderData };
+            orderData = newOrderData;
+        }
+    } catch (error) {
+        console.error('Error checking order changes:', error);
+    }
+}
+// ✅ التحقق من الرسائل الجديدة (معدل - بدون badges)
+async function checkNewMessages() {
+    try {
+        const orderId = getOrderIdFromUrl();
+        if (!orderId) return;
+        
+        const response = await fetch(`${ORDERS_API}?action=get_messages&order_id=${orderId}&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.messages) {
+            const currentCount = data.messages.length;
+            
+            if (lastMessagesCount === 0) {
+                lastMessagesCount = currentCount;
+                return;
+            }
+            
+            // إذا كانت هناك رسائل جديدة
+            if (currentCount > lastMessagesCount) {
+                const newMessagesCount = currentCount - lastMessagesCount;
+                console.log(`💬 ${newMessagesCount} new message(s) received`);
+                
+                // إذا كان تبويب المحادثة مفتوحاً، تحديث الرسائل فوراً
+                const messagesTab = document.getElementById('pane-messages');
+                if (messagesTab && messagesTab.classList.contains('active')) {
+                    await fetchMessages();
+                } else {
+                    await fetchMessages();
+                }
+            }
+            
+            lastMessagesCount = currentCount;
+        }
+    } catch (error) {
+        console.error('Error checking new messages:', error);
+    }
+}
+
+// ✅ التحقق من ملفات التسليم الجديدة (معدل - بدون badges)
+async function checkDeliveryChanges() {
+    try {
+        const orderId = getOrderIdFromUrl();
+        if (!orderId) return;
+        
+        const response = await fetch(`${ORDERS_API}?action=get_order&order_id=${orderId}&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.order && data.order.delivery_files) {
+            const currentCount = data.order.delivery_files.length;
+            
+            if (lastDeliveryCount === 0) {
+                lastDeliveryCount = currentCount;
+                return;
+            }
+            
+            if (currentCount > lastDeliveryCount) {
+                console.log('📎 New delivery files detected');
+                
+                // تحديث عرض الملفات
+                if (orderData) {
+                    orderData.delivery_files = data.order.delivery_files;
+                    renderDeliveryFiles();
+                }
+            }
+            
+            lastDeliveryCount = currentCount;
+        }
+    } catch (error) {
+        console.error('Error checking delivery changes:', error);
+    }
+}
+
+// ✅ تحديث عرض الحالة
+function updateStatusDisplay(newStatus) {
+    const statusMap = {
+        'awaiting_requirements': 'Awaiting Requirements',
+        'in_progress': 'In Progress',
+        'delivered': 'Delivered',
+        'in_revision': 'In Revision',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled'
+    };
+    
+    const statusVal = document.getElementById('status-val');
+    if (statusVal) {
+        statusVal.textContent = statusMap[newStatus] || newStatus;
+        
+        if (newStatus === 'completed') statusVal.style.color = 'var(--success)';
+        else if (newStatus === 'in_progress') statusVal.style.color = 'var(--primary-color)';
+        else if (newStatus === 'awaiting_requirements') statusVal.style.color = 'var(--warning)';
+        else if (newStatus === 'delivered') statusVal.style.color = 'var(--primary-color)';
+        else if (newStatus === 'cancelled') statusVal.style.color = '#ef4444';
+        
+        // تأثير وميض
+        statusVal.classList.add('data-updated');
+        setTimeout(() => statusVal.classList.remove('data-updated'), 500);
+    }
+    
+    updateActionButtons(newStatus);
+}
+
+// ✅ تحديث أزرار الإجراءات
+function updateActionButtons(status) {
+    const actionButtons = document.getElementById('delivery-action-buttons');
+    const revisionBtn = document.getElementById('btn-revision');
+    const acceptBtn = document.getElementById('btn-accept');
+    
+    if (!actionButtons) return;
+    
+    if (status === 'delivered') {
+        actionButtons.style.display = 'block';
+        if (revisionBtn) revisionBtn.style.display = (revisionsLeft > 0) ? 'inline-block' : 'none';
+        if (acceptBtn) acceptBtn.style.display = 'inline-block';
+    } else if (status === 'completed' || status === 'cancelled') {
+        actionButtons.style.display = 'none';
+    } else {
+        actionButtons.style.display = 'none';
+    }
+}
+
+// ✅ تحديث عرض المراجعات
+function updateRevisionsDisplay(left, total) {
+    revisionsLeft = left;
+    totalRevisions = total;
+    
+    const revisionsVal = document.getElementById('revisions-val');
+    if (revisionsVal) {
+        revisionsVal.innerHTML = `<i class="fas fa-redo-alt" style="font-size: 10px; margin-right: 5px;"></i> ${left} of ${total}`;
+        revisionsVal.classList.add('data-updated');
+        setTimeout(() => revisionsVal.classList.remove('data-updated'), 500);
+    }
+}
+
+// ✅ تحديث الصفحة بالكامل
+async function refreshOrderPage() {
+    const orderId = getOrderIdFromUrl();
+    if (!orderId) return;
+    
+    try {
+        const response = await fetch(`${ORDERS_API}?action=get_order&order_id=${orderId}&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            orderData = data.order;
+            renderOrderData();
+            renderDeliveryFiles();
+            
+            const messagesTab = document.getElementById('pane-messages');
+            if (messagesTab && messagesTab.classList.contains('active')) {
+                await fetchMessages();
+            }
+            
+            animateUpdatedElements();
+        }
+    } catch (error) {
+        console.error('Error refreshing order page:', error);
+    }
+}
+
+// ✅ تأثير بصري للعناصر المتغيرة
+function animateUpdatedElements() {
+    const elementsToAnimate = [
+        'status-val',
+        'revisions-val',
+        'order-amount',
+        'delivery-items-list'
+    ];
+    
+    elementsToAnimate.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.add('data-updated');
+            setTimeout(() => {
+                element.classList.remove('data-updated');
+            }, 500);
+        }
+    });
+}
+
+// ✅ إضافة CSS للتأثيرات
+function addTrackingStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes dataFlash {
+            0% { opacity: 0.5; background: rgba(139, 92, 246, 0.2); }
+            100% { opacity: 1; background: transparent; }
+        }
+        
+        .data-updated {
+            animation: dataFlash 0.5s ease;
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-left: 15px;
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: livePulse 1.5s infinite;
+        }
+        
+        @keyframes livePulse {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.3; transform: scale(1.2); }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ✅ إضافة مؤشر مباشر
+function addLiveIndicator() {
+    const header = document.querySelector('.card-header');
+    if (header && !document.querySelector('.live-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.className = 'live-indicator';
+        header.appendChild(indicator);
+    }
+}
+
+// ✅ تحديث يدوي
+function manualOrderRefresh() {
+    refreshOrderPage();
+    fetchMessages();
+}
+
+// ✅ مراقبة نشاط الصفحة
+document.addEventListener('visibilitychange', () => {
+    isPageActive = !document.hidden;
+    if (isPageActive && currentOrderId) {
+        console.log('Page active - checking for updates');
+        refreshOrderPage();
+        fetchMessages();
+    }
+});
+
+// ============================================
+// تجاوز الدوال الأصلية
+// ============================================
+
+const originalSendMessageFn = sendMessage;
+const originalAcceptOrderFn = acceptOrder;
+const originalRequestRevisionFn = requestRevision;
+
+window.sendMessage = async function() {
+    await originalSendMessageFn();
+    setTimeout(() => {
+        fetchMessages();
+    }, 500);
+};
+
+window.acceptOrder = async function() {
+    await originalAcceptOrderFn();
+    setTimeout(() => {
+        refreshOrderPage();
+    }, 1000);
+};
+
+window.requestRevision = async function() {
+    await originalRequestRevisionFn();
+    setTimeout(() => {
+        refreshOrderPage();
+    }, 1000);
+};
+
+// ============================================
+// تهيئة النظام
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    addTrackingStyles();
+    addLiveIndicator();
+    startOrderMonitoring();
+});
+
+window.addEventListener('beforeunload', () => {
+    stopOrderMonitoring();
 });

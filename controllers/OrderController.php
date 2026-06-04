@@ -510,9 +510,6 @@ function submitRating($db) {
     }
 }
 
-// ============================================
-// FUNCTION: updateGigRating - تحديث تقييم الخدمة
-// ============================================
 function updateGigRating($db, $gigId) {
     try {
         // حساب متوسط التقييمات لهذه الخدمة
@@ -533,19 +530,28 @@ function updateGigRating($db, $gigId) {
         $stmt = $db->prepare("UPDATE gigs SET rating = ? WHERE id = ?");
         $stmt->execute([$avgRating, $gigId]);
         
-        // ✅ تحديث مستوى البائع
+        // ✅ تحديث مستوى البائع - مع التحقق من وجود الملف
         $stmt = $db->prepare("SELECT seller_id FROM gigs WHERE id = ?");
         $stmt->execute([$gigId]);
         $gig = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($gig) {
-            $gigModel = new Gig();
-            $gigModel->updateSellerLevel($gig['seller_id']);
+            // ✅ التحقق من وجود ملف Gig.php قبل تحميله
+            $gigModelPath = __DIR__ . '/../models/Gig.php';
+            if (file_exists($gigModelPath)) {
+                require_once $gigModelPath;
+                if (class_exists('Gig')) {
+                    $gigModel = new Gig();
+                    if (method_exists($gigModel, 'updateSellerLevel')) {
+                        $gigModel->updateSellerLevel($gig['seller_id']);
+                    }
+                }
+            }
         }
         
         return true;
         
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         error_log("Error updating gig rating: " . $e->getMessage());
         return false;
     }

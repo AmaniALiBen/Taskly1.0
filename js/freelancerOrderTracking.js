@@ -21,6 +21,16 @@ let currentOrderId = null;
 let isSending = false;
 
 // =========================================
+// REAL-TIME UPDATE VARIABLES (بدون توست)
+// =========================================
+let orderPollingInterval = null;
+let lastOrderStatus = null;
+let lastRevisionsLeft = null;
+let lastDeliveryCount = 0;
+let lastRequirementsText = null;
+let isPageActive = true;
+
+// =========================================
 // GET ORDER ID FROM URL
 // =========================================
 function getOrderIdFromUrl() {
@@ -66,13 +76,13 @@ function disableChatOnCompletion() {
 }
 
 // =========================================
-// LOAD ORDER FROM DATABASE (مع منع الطلبات الملغاة)
+// LOAD ORDER FROM DATABASE
 // =========================================
 async function loadOrderFromDatabase() {
     const orderId = getOrderIdFromUrl();
     
     if (!orderId) {
-        showToast('Invalid order ID', 'error');
+        console.log('Invalid order ID');
         return;
     }
     
@@ -83,51 +93,184 @@ async function loadOrderFromDatabase() {
         if (data.success) {
             orderData = data.order;
             
-            // ✅ إذا كان الطلب ملغى، امنع الوصول وأعد التوجيه
             if (orderData.status === 'cancelled') {
-                showToast('This order has been cancelled. Returning to dashboard.', 'error');
                 setTimeout(() => {
                     window.location.href = 'sellerDashboard.html?tab=orders';
                 }, 2000);
                 return;
             }
             
+            // تهيئة القيم للمقارنة
+            if (!lastOrderStatus) {
+                lastOrderStatus = orderData.status;
+                lastRevisionsLeft = orderData.left_revisions;
+                lastDeliveryCount = orderData.delivery_files?.length || 0;
+                lastRequirementsText = orderData.requirements_text;
+            }
+            
             renderOrderData();
             startMessagePolling(orderId);
+            startOrderMonitoring();
         } else {
-            showToast('Order not found', 'error');
+            console.log('Order not found');
         }
     } catch (error) {
         console.error('Error loading order:', error);
-        showToast('Failed to load order', 'error');
     }
 }
 
 // =========================================
-// RENDER ORDER DATA TO PAGE
+// REAL-TIME ORDER MONITORING (بدون توست)
 // =========================================
-function renderOrderData() {
+function startOrderMonitoring() {
+    if (orderPollingInterval) clearInterval(orderPollingInterval);
+    
+    orderPollingInterval = setInterval(() => {
+        if (isPageActive && currentOrderId) {
+            checkOrderChangesSilent();
+        }
+    }, 5000);
+}
+
+function stopOrderMonitoring() {
+    if (orderPollingInterval) {
+        clearInterval(orderPollingInterval);
+        orderPollingInterval = null;
+    }
+}
+
+async function checkOrderChangesSilent() {
+    try {
+        const orderId = getOrderIdFromUrl();
+        if (!orderId) return;
+        
+        const response = await fetch(`${ORDERS_API}?action=get_order&order_id=${orderId}&t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.order) {
+            const newOrderData = data.order;
+            let needsRefresh = false;
+            
+            // 1. التحقق من تغيير الحالة
+            if (lastOrderStatus !== newOrderData.status) {
+                console.log('📊 Order status changed:', lastOrderStatus, '->', newOrderData.status);
+                lastOrderStatus = newOrderData.status;
+                needsRefresh = true;
+                
+                // تحديث الحالة في الواجهة
+                updateStatusDisplaySilent(newOrderData.status);
+                
+                // تعطيل الدردشة إذا اكتمل الطلب
+                if (newOrderData.status === 'completed') {
+                    orderCompleted = true;
+                    disableChatOnCompletion();
+                    const submitBtn = document.getElementById('submit-delivery-btn');
+                    if (submitBtn) submitBtn.disabled = true;
+                    const cancelBtn = document.getElementById('cancel-request-btn');
+                    if (cancelBtn) cancelBtn.disabled = true;
+                    const deliveryUploadZone = document.querySelector('#delivery-container .delivery-upload-zone');
+                    if (deliveryUploadZone) deliveryUploadZone.style.display = 'none';
+                }
+            }
+            
+            // 2. التحقق من تغيير المراجعات
+            if (lastRevisionsLeft !== newOrderData.left_revisions) {
+                console.log('🔄 Revisions changed:', lastRevisionsLeft, '->', newOrderData.left_revisions);
+                lastRevisionsLeft = newOrderData.left_revisions;
+                revisionsLeft = newOrderData.left_revisions;
+                totalRevisions = newOrderData.revisions_allowed;
+                needsRefresh = true;
+                
+                const revisionsLeftSpan = document.getElementById('revisions-left');
+                if (revisionsLeftSpan) revisionsLeftSpan.textContent = revisionsLeft;
+            }
+            
+            // 3. التحقق من ملفات تسليم جديدة
+            const currentDeliveryCount = newOrderData.delivery_files?.length || 0;
+            if (currentDeliveryCount > lastDeliveryCount) {
+                console.log('📎 New delivery files added');
+                lastDeliveryCount = currentDeliveryCount;
+                needsRefresh = true;
+            }
+            
+            // 4. التحقق من تغيير المتطلبات
+            if (lastRequirementsText !== newOrderData.requirements_text && newOrderData.requirements_text) {
+                console.log('📝 Requirements updated');
+                lastRequirementsText = newOrderData.requirements_text;
+                needsRefresh = true;
+            }
+            
+            // 5. تحديث البيانات والواجهة إذا لزم الأمر
+            if (needsRefresh) {
+                orderData = newOrderData;
+                renderOrderDataSilent();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking order changes:', error);
+    }
+}
+
+// ✅ تحديث الحالة بدون توست
+function updateStatusDisplaySilent(newStatus) {
+    const statusMap = {
+        'awaiting_requirements': 'Awaiting Requirements',
+        'in_progress': 'In Progress',
+        'delivered': 'Delivered',
+        'in_revision': 'In Revision',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled'
+    };
+    
+    const statusVal = document.getElementById('status-val');
+    if (statusVal) {
+        statusVal.textContent = statusMap[newStatus] || newStatus;
+        if (newStatus === 'completed') statusVal.style.color = 'var(--success)';
+        else if (newStatus === 'in_progress') statusVal.style.color = 'var(--primary-color)';
+        else if (newStatus === 'awaiting_requirements') statusVal.style.color = 'var(--warning)';
+        else if (newStatus === 'delivered') statusVal.style.color = 'var(--primary-color)';
+        else if (newStatus === 'cancelled') statusVal.style.color = '#ef4444';
+        
+        // تأثير وميض
+        statusVal.classList.add('data-flash');
+        setTimeout(() => statusVal.classList.remove('data-flash'), 500);
+    }
+    
+    // تحديث الأزرار حسب الحالة
+    updateButtonsByStatus(newStatus);
+}
+
+// ✅ تحديث الأزرار حسب الحالة
+function updateButtonsByStatus(status) {
+    const submitBtn = document.getElementById('submit-delivery-btn');
+    const cancelBtn = document.getElementById('cancel-request-btn');
+    
+    if (status === 'completed' || status === 'cancelled') {
+        if (submitBtn) submitBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+    } else {
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn && !cancelRequestSubmitted) cancelBtn.disabled = false;
+    }
+}
+
+// ✅ تحديث الواجهة بالكامل بدون توست
+function renderOrderDataSilent() {
     if (!orderData) return;
     
-    // Update order number
+    // تحديث رقم الطلب
     const orderIdDisplay = document.getElementById('order-id-display');
-    if (orderIdDisplay) {
-        orderIdDisplay.textContent = `#${orderData.id}`;
-    }
+    if (orderIdDisplay) orderIdDisplay.textContent = `#${orderData.id}`;
     
-    // Update title
+    // تحديث عنوان الخدمة
     const orderTitle = document.getElementById('order-title');
-    if (orderTitle) {
-        orderTitle.textContent = orderData.gig_title || 'Gig Title';
-    }
+    if (orderTitle) orderTitle.textContent = orderData.gig_title || 'Gig Title';
     
-    // Update buyer info
+    // تحديث اسم المشتري
     const buyerName = document.getElementById('buyer-name');
-    if (buyerName) {
-        buyerName.textContent = orderData.buyer_name || 'Buyer';
-    }
+    if (buyerName) buyerName.textContent = orderData.buyer_name || 'Buyer';
     
-    // Update buyer avatar
+    // تحديث صورة المشتري
     const buyerAvatar = document.getElementById('buyer-avatar');
     if (buyerAvatar) {
         const buyerPicture = orderData.buyer_picture;
@@ -138,13 +281,13 @@ function renderOrderData() {
         }
     }
     
-    // Update budget
+    // تحديث الميزانية
     const orderBudget = document.getElementById('order-budget');
-    if (orderBudget) {
-        orderBudget.textContent = `$${parseFloat(orderData.price || 0).toFixed(2)}`;
-    }
+    if (orderBudget) orderBudget.textContent = `$${parseFloat(orderData.price || 0).toFixed(2)}`;
+    orderBudget?.classList.add('data-flash');
+    setTimeout(() => orderBudget?.classList.remove('data-flash'), 500);
     
-    // Update deadline
+    // تحديث الموعد النهائي
     const orderDeadline = document.getElementById('order-deadline');
     if (orderDeadline) {
         if (orderData.deadline) {
@@ -155,16 +298,183 @@ function renderOrderData() {
         }
     }
     
-    // ✅ تحديث عدد المراجعات من قاعدة البيانات مباشرة
+    // تحديث المراجعات
+    const revisionsLeftSpan = document.getElementById('revisions-left');
+    if (revisionsLeftSpan) revisionsLeftSpan.textContent = revisionsLeft;
+    
+    // تحديث الحالة
+    updateStatusDisplaySilent(orderData.status);
+    
+    // تحديث نص المتطلبات
+    const requirementsText = document.getElementById('requirements-text');
+    if (requirementsText) {
+        requirementsText.textContent = orderData.requirements_text || 'No requirements submitted yet.';
+    }
+    
+    // تحديث الملفات المرفقة
+    renderAttachedFilesSilent();
+    
+    // تحديث تاريخ التسليم
+    renderDeliveryHistorySilent();
+}
+
+// ✅ تحديث الملفات المرفقة بدون توست
+function renderAttachedFilesSilent() {
+    const attachedFilesDiv = document.getElementById('attached-files');
+    if (!attachedFilesDiv) return;
+    
+    if (orderData && orderData.requirements_files && orderData.requirements_files.length > 0) {
+        attachedFilesDiv.innerHTML = orderData.requirements_files.map(file => `
+            <div class="download-item" onclick="downloadFile(${file.id}, '${escapeHtml(file.file_name)}')" style="cursor:pointer;">
+                <i class="fas ${getFileIcon(file.extension)}"></i>
+                <span>${escapeHtml(file.file_name)}</span>
+                <i class="fas fa-download download-icon"></i>
+            </div>
+        `).join('');
+    } else {
+        attachedFilesDiv.innerHTML = '<div class="empty-message" style="text-align: center; padding: 20px;">No files attached</div>';
+    }
+}
+
+// ✅ تحديث تاريخ التسليم بدون توست
+function renderDeliveryHistorySilent() {
+    const historyContainer = document.getElementById('delivery-history');
+    if (!historyContainer) return;
+    
+    if (orderData && orderData.delivery_files && orderData.delivery_files.length > 0) {
+        const sortedFiles = [...orderData.delivery_files].sort((a, b) => {
+            return new Date(b.uploaded_at) - new Date(a.uploaded_at);
+        });
+        
+        const historyHtml = sortedFiles.map((file, index) => {
+            const uploadDate = new Date(file.uploaded_at);
+            const formattedDate = uploadDate.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            const versionNum = sortedFiles.length - index;
+            
+            return `
+                <div class="delivery-item" id="delivery-item-${file.id}">
+                    <div class="delivery-header">
+                        <span class="delivery-tag tag-delivered">Delivered</span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">${formattedDate}</span>
+                    </div>
+                    <h4 style="margin-bottom: 8px;">Version ${versionNum}</h4>
+                    <div class="delivery-files">
+                        <span class="delivery-file" onclick="downloadFile(${file.id}, '${escapeHtml(file.file_name)}')" style="cursor:pointer;">
+                            <i class="fas ${getFileIcon(file.extension)}"></i> ${escapeHtml(file.file_name)}
+                        </span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <span class="delivery-tag tag-pending" id="delivery-status-${file.id}">Pending Review</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        historyContainer.innerHTML = historyHtml;
+    } else {
+        historyContainer.innerHTML = '<div class="empty-message" style="text-align: center; padding: 40px;"><i class="fas fa-box-open"></i><p>No deliveries yet</p></div>';
+    }
+}
+
+// ✅ التحقق من الرسائل الجديدة بدون توست
+async function fetchMessagesSilent() {
+    if (!currentOrderId) return;
+    
+    let url = `${ORDERS_API}?action=get_messages&order_id=${currentOrderId}`;
+    if (lastMessageTime) {
+        url += `&after_time=${encodeURIComponent(lastMessageTime)}`;
+    }
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && data.messages && data.messages.length > 0) {
+            const lastMessage = data.messages[data.messages.length - 1];
+            lastMessageTime = lastMessage.sent_at;
+            
+            // إضافة الرسائل الجديدة فقط (بدون إشعار)
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox && !document.hidden) {
+                const oldHeight = chatBox.scrollHeight;
+                const wasAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= 100;
+                
+                data.messages.forEach(msg => {
+                    const isMe = (msg.sender_id == currentUserId);
+                    // التحقق من عدم وجود الرسالة مسبقاً
+                    const existingMsg = chatBox.querySelector(`[data-msg-id="${msg.id}"]`);
+                    if (!existingMsg) {
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = `msg ${isMe ? 'msg-me' : 'msg-buyer'}`;
+                        msgDiv.setAttribute('data-msg-id', msg.id);
+                        const senderName = isMe ? 'You' : (msg.sender_name || 'Buyer');
+                        const time = new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        msgDiv.innerHTML = `
+                            <div class="msg-meta">${escapeHtml(senderName)} • ${time}</div>
+                            ${escapeHtml(msg.content)}
+                        `;
+                        chatBox.appendChild(msgDiv);
+                    }
+                });
+                
+                // التمرير للأسفل إذا كان المستخدم في الأسفل
+                if (wasAtBottom) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+    }
+}
+
+// =========================================
+// RENDER ORDER DATA TO PAGE (أصلي)
+// =========================================
+function renderOrderData() {
+    if (!orderData) return;
+    
+    const orderIdDisplay = document.getElementById('order-id-display');
+    if (orderIdDisplay) orderIdDisplay.textContent = `#${orderData.id}`;
+    
+    const orderTitle = document.getElementById('order-title');
+    if (orderTitle) orderTitle.textContent = orderData.gig_title || 'Gig Title';
+    
+    const buyerName = document.getElementById('buyer-name');
+    if (buyerName) buyerName.textContent = orderData.buyer_name || 'Buyer';
+    
+    const buyerAvatar = document.getElementById('buyer-avatar');
+    if (buyerAvatar) {
+        const buyerPicture = orderData.buyer_picture;
+        if (buyerPicture && buyerPicture !== 'null' && buyerPicture !== '') {
+            buyerAvatar.src = buyerPicture;
+        } else {
+            buyerAvatar.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(orderData.buyer_name || 'B') + '&background=7c3aed&color=fff&size=100';
+        }
+    }
+    
+    const orderBudget = document.getElementById('order-budget');
+    if (orderBudget) orderBudget.textContent = `$${parseFloat(orderData.price || 0).toFixed(2)}`;
+    
+    const orderDeadline = document.getElementById('order-deadline');
+    if (orderDeadline) {
+        if (orderData.deadline) {
+            const date = new Date(orderData.deadline);
+            orderDeadline.textContent = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } else {
+            orderDeadline.textContent = '-';
+        }
+    }
+    
     totalRevisions = orderData.revisions_allowed || 3;
     revisionsLeft = orderData.left_revisions !== null && orderData.left_revisions !== undefined ? orderData.left_revisions : totalRevisions;
     
     const revisionsLeftSpan = document.getElementById('revisions-left');
-    if (revisionsLeftSpan) {
-        revisionsLeftSpan.textContent = revisionsLeft;
-    }
+    if (revisionsLeftSpan) revisionsLeftSpan.textContent = revisionsLeft;
     
-    // Update status
     const statusMap = {
         'awaiting_requirements': 'Awaiting Requirements',
         'in_progress': 'In Progress',
@@ -182,39 +492,28 @@ function renderOrderData() {
         else if (orderData.status === 'awaiting_requirements') statusVal.style.color = 'var(--warning)';
     }
     
-    // Update requirements text (read only for seller)
     const requirementsText = document.getElementById('requirements-text');
     if (requirementsText) {
         requirementsText.textContent = orderData.requirements_text || 'No requirements submitted yet.';
     }
     
-    // Update attached files (read only for seller)
     renderAttachedFiles();
-    
-    // Update delivery history
     renderDeliveryHistory();
     
-    // Disable buttons and chat if order completed
     if (orderData.status === 'completed') {
         orderCompleted = true;
         const submitBtn = document.getElementById('submit-delivery-btn');
         if (submitBtn) submitBtn.disabled = true;
         const cancelBtn = document.getElementById('cancel-request-btn');
         if (cancelBtn) cancelBtn.disabled = true;
-        
-        // تعطيل الدردشة
         disableChatOnCompletion();
-        
-        // إخفاء منطقة رفع الملفات
         const deliveryUploadZone = document.querySelector('#delivery-container .delivery-upload-zone');
-        if (deliveryUploadZone) {
-            deliveryUploadZone.style.display = 'none';
-        }
+        if (deliveryUploadZone) deliveryUploadZone.style.display = 'none';
     }
 }
 
 // =========================================
-// RENDER ATTACHED FILES (للبائع - للعرض فقط)
+// RENDER ATTACHED FILES (أصلي)
 // =========================================
 function renderAttachedFiles() {
     const attachedFilesDiv = document.getElementById('attached-files');
@@ -234,7 +533,7 @@ function renderAttachedFiles() {
 }
 
 // =========================================
-// RENDER DELIVERY HISTORY
+// RENDER DELIVERY HISTORY (أصلي)
 // =========================================
 function renderDeliveryHistory() {
     const historyContainer = document.getElementById('delivery-history');
@@ -295,33 +594,7 @@ function getFileIcon(extension) {
 // DOWNLOAD FILE
 // =========================================
 async function downloadFile(fileId, fileName) {
-    showToast(`Downloading ${fileName}...`, 'info');
     window.location.href = `${ORDERS_API}?action=download_file&file_id=${fileId}`;
-}
-
-// =========================================
-// TOAST FUNCTIONS
-// =========================================
-function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        document.body.appendChild(container);
-    }
-    
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    let icon = 'fa-info-circle';
-    if (type === 'success') icon = 'fa-check-circle';
-    if (type === 'error') icon = 'fa-exclamation-triangle';
-    toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
 }
 
 // =========================================
@@ -341,7 +614,6 @@ function handleDeliveryFiles(event) {
     const files = Array.from(event.target.files);
     deliveryFiles = [...deliveryFiles, ...files];
     renderDeliveryFilesUpload();
-    showToast(`${files.length} file(s) added for delivery`, 'success');
 }
 
 function renderDeliveryFilesUpload() {
@@ -365,21 +637,17 @@ function removeDeliveryFile(index) {
 // SUBMIT DELIVERY TO DATABASE
 // =========================================
 async function submitDelivery() {
-    // منع رفع التسليم إذا كان الطلب مكتملاً
     if (orderCompleted) {
-        showToast('Order is completed. Cannot submit delivery.', 'error');
         return;
     }
     
     const orderId = getOrderIdFromUrl();
     
     if (!orderId) {
-        showToast('No order ID found', 'error');
         return;
     }
     
     if (deliveryFiles.length === 0) {
-        showToast('Please select files to deliver', 'error');
         return;
     }
     
@@ -391,9 +659,8 @@ async function submitDelivery() {
     }
     
     const submitBtn = document.getElementById('submit-delivery-btn');
-    const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     
     try {
         const response = await fetch(`${ORDERS_API}?action=submit_delivery`, {
@@ -403,20 +670,16 @@ async function submitDelivery() {
         const data = await response.json();
         
         if (data.success) {
-            showToast('Delivery submitted successfully!', 'success');
             deliveryFiles = [];
             renderDeliveryFilesUpload();
             document.getElementById('delivery-file-input').value = '';
             await loadOrderFromDatabase();
-        } else {
-            showToast(data.message || 'Failed to submit delivery', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showToast('Failed to submit delivery', 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
+        submitBtn.innerHTML = '<i class="fas fa-upload"></i> Submit Delivery';
     }
 }
 
@@ -485,9 +748,7 @@ function appendMessages(messages) {
 }
 
 async function sendMessage() {
-    // منع الإرسال إذا كان الطلب مكتملاً
     if (orderCompleted) {
-        showToast('Order is completed. Chat is closed.', 'error');
         return;
     }
     
@@ -513,12 +774,9 @@ async function sendMessage() {
         
         if (data.success) {
             input.value = '';
-        } else {
-            showToast(data.message, 'error');
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        showToast('Failed to send message', 'error');
     } finally {
         setTimeout(() => {
             isSending = false;
@@ -530,14 +788,8 @@ async function sendMessage() {
 // CANCEL REQUEST MODAL
 // =========================================
 function openCancelModal() {
-    if (orderCompleted) {
-        showToast('Order is already completed. Cannot request cancellation.', 'error');
-        return;
-    }
-    if (cancelRequestSubmitted) {
-        showToast('Cancellation request already submitted. Please wait for admin review.', 'error');
-        return;
-    }
+    if (orderCompleted) return;
+    if (cancelRequestSubmitted) return;
     document.getElementById('cancelModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -553,15 +805,8 @@ function submitCancelRequest() {
     const selectedReason = document.querySelector('input[name="cancel-reason"]:checked');
     const detail = document.getElementById('cancel-reason-detail').value;
 
-    if (!selectedReason) {
-        showToast('Please select a reason for cancellation', 'error');
-        return;
-    }
-
-    if (!detail.trim()) {
-        showToast('Please provide additional details', 'error');
-        return;
-    }
+    if (!selectedReason) return;
+    if (!detail.trim()) return;
 
     const reasonText = selectedReason.nextElementSibling.innerText;
     const orderId = getOrderIdFromUrl();
@@ -592,7 +837,6 @@ function submitCancelRequest() {
     const cancelBtn = document.getElementById('cancel-request-btn');
     if (cancelBtn) cancelBtn.disabled = true;
 
-    showToast('Cancellation request submitted to admin. You will be notified once reviewed.', 'success');
     closeCancelModal();
 
     const chatBox = document.getElementById('chat-box');
@@ -619,18 +863,68 @@ function escapeHtml(str) {
 }
 
 // =========================================
-// INITIALIZATION
+// CSS للتأثيرات البصرية
 // =========================================
-window.onclick = function (event) {
-    const cancelModal = document.getElementById('cancelModal');
-    if (event.target === cancelModal) closeCancelModal();
+function addTrackingStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes dataFlash {
+            0% { opacity: 0.5; background: rgba(139, 92, 246, 0.2); }
+            100% { opacity: 1; background: transparent; }
+        }
+        .data-flash {
+            animation: dataFlash 0.5s ease;
+        }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-left: 15px;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: livePulse 1.5s infinite;
+        }
+        @keyframes livePulse {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.3; transform: scale(1.2); }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') closeCancelModal();
+function addLiveIndicator() {
+    const header = document.querySelector('.card-header');
+    if (header && !document.querySelector('.live-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.className = 'live-indicator';
+        indicator.innerHTML = '<span class="live-dot"></span> Live updates';
+        header.appendChild(indicator);
+    }
+}
+
+// =========================================
+// INITIALIZATION
+// =========================================
+document.addEventListener('visibilitychange', () => {
+    isPageActive = !document.hidden;
+    if (isPageActive && currentOrderId) {
+        checkOrderChangesSilent();
+        fetchMessages();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', async function() {
+    addTrackingStyles();
+    addLiveIndicator();
     currentUserId = await getCurrentUserId();
     await loadOrderFromDatabase();
     
@@ -647,4 +941,5 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 window.addEventListener('beforeunload', function() {
     stopMessagePolling();
+    stopOrderMonitoring();
 });
