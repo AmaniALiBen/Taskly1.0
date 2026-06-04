@@ -336,26 +336,52 @@ switch ($action) {
         break;
 
     // ── UPDATE ORDER STATUS ───────────────────────────────────
-    case 'update_status':
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $userId = $_SESSION['user_id'] ?? 0;
-        $orderId = $input['order_id'] ?? 0;
-        $newStatus = $input['status'] ?? '';
-        
-        if ($userId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'You must be logged in']);
-            break;
-        }
-        
-        $result = $orderModel->updateOrderStatus($orderId, $newStatus);
-        
-        if ($result) {
-            echo json_encode(['success' => true, 'message' => 'Status updated']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update status']);
-        }
+    // ── UPDATE ORDER STATUS ───────────────────────────────────
+case 'update_status':
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    $userId = $_SESSION['user_id'] ?? 0;
+    $orderId = $input['order_id'] ?? 0;
+    $newStatus = $input['status'] ?? '';
+    
+    if ($userId <= 0) {
+        echo json_encode(['success' => false, 'message' => 'You must be logged in']);
         break;
+    }
+    
+    // ✅ إذا كانت الحالة الجديدة "completed" (المشتري يقبل الطلب)
+    if ($newStatus === 'completed') {
+        // جلب تفاصيل الطلب والسعر
+        $stmt = $db->prepare("
+            SELECT o.seller_id, gp.price 
+            FROM orders o
+            JOIN gig_packages gp ON o.package_id = gp.id
+            WHERE o.id = ?
+        ");
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($order) {
+            // ✅ إضافة السعر لمحفظة البائع
+            $stmt2 = $db->prepare("
+                UPDATE wallets 
+                SET balance = balance + ? 
+                WHERE user_id = ?
+            ");
+            $stmt2->execute([$order['price'], $order['seller_id']]);
+            
+            error_log("Payment of $" . $order['price'] . " released to seller ID: " . $order['seller_id']);
+        }
+    }
+    
+    $result = $orderModel->updateOrderStatus($orderId, $newStatus);
+    
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Status updated']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update status']);
+    }
+    break;
 
     // ── SEND MESSAGE ──────────────────────────────────────────
     case 'send_message':
